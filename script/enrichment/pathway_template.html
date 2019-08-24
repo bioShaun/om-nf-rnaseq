@@ -1,0 +1,60 @@
+<html>
+
+<head>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+  <script src="src/jquery.imagemapster.min.js"></script>
+</head>
+
+
+<img id="image" src="src/{{ pathway_id }}.png" name="pathwayimage" usemap="#mapdata" border="0" />
+
+<map name="mapdata" id="mapdata">
+  {% for each_area in area_tags %}
+    {% if each_area['id'] %}
+      <area id="{{ each_area['id'] }}" shape="{{ each_area['shape'] }}" coords="{{ each_area['coords'] }}" href="{{ each_area['href'] }}" title="{{ each_area['title'] }}" onmouseover="{{ each_area['onmouseover'] }}" onmouseout="{{each_area['onmouseout']}}"/>
+    {% else %}
+      <area shape="{{ each_area['shape'] }}" coords="{{ each_area['coords'] }}" href="{{ each_area['href'] }}" title="{{ each_area['title'] }}" onmouseover="{{ each_area['onmouseover'] }}" onmouseout="{{each_area['onmouseout']}}"/>
+    {% endif %}
+
+  {% endfor %}
+</map>
+<div id="poplay" class="poplay" />
+
+<script>
+  $(function() {
+      $('#image').mapster(
+        {
+        mapKey: 'id',
+        fillOpacity: 0.3,
+        stroke: true,
+        strokeOpacity: 1,
+        strokeWidth: 1.5,
+        staticState: true,
+        singleSelect: true,
+        onClick: go,
+        areas:  [{
+            key: "up", 
+            strokeColor: 'ff0000',
+            fillColor: 'ff0000',
+         },
+         { 
+            key: "down",
+            strokeColor: '4876FF',
+            fillColor: '4876FF',
+         },
+         { 
+          key: "mixed",
+          strokeColor: 'CD950C',
+          fillColor: 'CD950C',
+       }]
+      }
+    );
+  });
+  function go(data) {
+      if (this.href && this.href !== '#') {
+          window.open(this.href,'_self');
+      }
+  }
+  </script>
+
+</html>

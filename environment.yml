@@ -1,0 +1,20 @@
+name: nf
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - fastp=0.19.5
+  - hisat2=2.1.0
+  - fire=0.2.1
+  - pybigwig=0.3.16
+  - samtools=1.9
+  - picard=2.18.7
+  - bioconductor-dupradar=1.12.1
+  - kallisto=0.46.0
+  - gffread=0.11.4
+  - scallop=0.10.4
+  - gffcompare=0.11.2
+  - r-devtools=2.0.2
+  - lxml=4.4.1
+  - beautifulsoup4=4.8.0
