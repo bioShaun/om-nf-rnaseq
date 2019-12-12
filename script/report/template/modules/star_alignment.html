@@ -1,0 +1,166 @@
+<section id="star_alignment">
+
+    <h3>序列比对</h3>
+    <div id='star_alignment_summary' class="block">
+        <div class="description">
+            <p>
+                此部分展示了测序数据比对到基因组的情况。
+                我们使用 <a href="https://github.com/alexdobin/STAR" target="_blank"> <b>STAR</b> </a><a href="#citation-{{star_alignment_cite}}"><sup>{{star_alignment_cite}}</sup></a> (Dobin, Alexander, et al. 2013)软件，
+                将测序获得的 reads 比对到基因组，
+                得到的包含 reads 在基因组位置信息的 bam 文件。
+                样品的比对率受到样品以及物种基因组等多个因素的影响，
+                一般来说这个比例在 60% 至 90% 之间。以下图表展示了各样品比对结果。            
+            </p>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="thead-dark">
+                    <tr>
+                        {% for cell in mapping_summary_header %}
+                        <th class="align-middle">{{cell}}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in mapping_summary_body %}
+                    <tr>
+                        {% for cell in row %}
+                        <td>{{cell}}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>                   
+        </div>
+
+        {% if mapping_summary %}
+        <div class="plot">
+            <a class="mapping-summary-link" 
+                href="{{mapping_summary}}" data-lightbox="mapping-summary">
+                <img class="mapping" src="{{mapping_summary}}" />
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if overall_genome_region %}
+    <div id="overall_genome_region" class="block">
+        <h4>reads 在基因组区域分布图</h4>
+        <div class="description">
+            <p>                
+                我们使用 <a href="https://broadinstitute.github.io/picard/" target="_blank"> <b>Picard</b> </a> 软件
+                统计比对到基因组不同区域 reads 的比例。转录组测序得到的数据应该大部分来自基因区域，
+                若结果不符，需要对数据和参考基因组进行核查。
+            </p>
+        </div>
+
+        <div class="w clearfix">
+            <div class="plot-small fl">
+                <a class="genome-region-link" 
+                href="{{overall_genome_region}}" data-lightbox="genome-region">
+                <img class="genome-region" src="{{overall_genome_region}}" />
+                </a>
+            </div>
+            {% if genome_region %}
+            <div class="plot-small-slider fl">
+                <div class="fotorama" 
+                    data-width="400" 
+                    data-ratio="4/3" 
+                    data-max-width="100%"
+                    data-allowfullscreen="true"
+                    data-nav="thumbs"
+                    data-transition="crossfade"
+                    data-loop="true"
+                >
+                {% for plot in genome_region %}
+                    <img src="{{plot}}">
+                {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if overall_gene_coverage %}
+    <div id="overall_gene_coverage" class="block">
+        <h4>reads 在基因区域覆盖分布图</h4>
+        <div class="description">
+            <p>
+                左图展示了1000个表达量最高的转录本5'端100bp reads 覆盖度
+                相对于3'端100bp reads 覆盖度的比例。
+                右图将所有基因的转录本按照比例100等分，
+                分别计算每个区域上的 reads 覆盖情况，
+                进行标准化之后得到基因5'端至3'端的整体表达情况。                    
+                通常情况下 reads 在5'端和3'端的覆盖度是一致的，
+                若 reads 覆盖在5'或3'端存在明显的偏好，
+                说明样品 RNA 可能存在不完整的情况。
+            </p>
+        </div>
+        <div class="w clearfix">
+            <div class="plot-small fl">
+                <a class="gene-coverage-link" 
+                href="{{overall_gene_coverage}}" data-lightbox="gene-coverage">
+                <img class="gene-coverage" src="{{overall_gene_coverage}}" />
+                </a>
+            </div>
+            {% if gene_coverage %}
+            <div class="plot-small-slider fl">
+                <div class="fotorama" 
+                    data-width="400" 
+                    data-ratio="4/3" 
+                    data-max-width="100%"
+                    data-allowfullscreen="true"
+                    data-nav="thumbs"
+                    data-transition="crossfade"
+                    data-loop="true"
+                >
+                {% for plot in gene_coverage %}
+                    <img src="{{plot}}">
+                {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if overall_insert_size %}
+    <div id="overall_insert_size" class="block">
+        <h4>文库片段长度分布</h4>
+        <div class="description">
+            <p>
+                左图展示了各个样品文库片段中位数。
+                右图展示了文库片段长度在不同样品的分布情况。
+            </p>
+        </div>
+        {% if insert_size %}
+        <div class="w clearfix">
+            <div class="plot-small fl">
+                <a class="insert-size-link" 
+                href="{{overall_insert_size}}" data-lightbox="insert-size">
+                <img class="insert-size" src="{{overall_insert_size}}" />
+                </a>
+            </div>
+            <div class="plot-small-slider fl">
+                <div class="fotorama" 
+                    data-width="400" 
+                    data-ratio="4/3" 
+                    data-max-width="100%"
+                    data-allowfullscreen="true"
+                    data-nav="thumbs"
+                    data-transition="crossfade"
+                    data-loop="true"
+                >
+                {% for plot in insert_size %}
+                    <img src="{{plot}}">
+                {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+</section>

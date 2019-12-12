@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>RNAseq analysis</title>
+    <!-- load css -->
+    <link href="lib/css/bootstrap.min.css" rel="stylesheet">
+    <link href="lib/css/fotorama.css" rel="stylesheet">
+    <link rel="stylesheet" href="lib/css/lightbox.min.css">
+    <link rel="stylesheet" href="lib/css/jquery.mCustomScrollbar.min.css">
+    <link rel="stylesheet" href="lib/css/base.css">
+    <link rel="stylesheet" href="lib/css/navbar.css">
+    
+    <!-- load js -->
+    <script src="lib/js/jquery.min.js"></script>
+    <script src="lib/js/fotorama.js"></script>
+    <script src="lib/js/lightbox.min.js"></script>
+    <script src="lib/js/solid.js"></script>
+    <script src="lib/js/fontawesome.js"></script>
+    <script src="lib/js/popper.min.js"></script>
+    <script src="lib/js/bootstrap.min.js"></script>
+    <script src="lib/js/jquery.mCustomScrollbar.concat.min.js"></script>
+    <script src="lib/js/base.js"></script>
+
+</head>
+<body>
+    <div class="wrapper">
+        <nav id="sidebar">
+            <div class="sidebar-header">
+                <h3>Tcuni</h3>
+            </div>
+
+            <ul class="list-unstyled components">
+                <a href="#"><p>转录组分析报告</p></a>
+                {% if data_info %}
+                <li>
+                    <a href="#dataInfMenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">数据质控</a>
+                    <ul class="collapse list-unstyled" id="dataInfMenu">
+                        <li>
+                            <a href="#data_info">数据统计</a>
+                        </li>
+                        {% if reads_filter %}
+                        <li>
+                            <a href="#reads_filter">数据过滤</a>
+                        </li>
+                        {% endif %}
+                        {% if reads_quality %}
+                        <li>
+                            <a href="#reads_quality">数据质量</a>
+                        </li>
+                        {% endif %}
+                        {% if reads_gc %}
+                        <li>
+                            <a href="#reads_gc">GC 分布</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </li>
+                {% endif %}
+                {% if star_alignment %}
+                <li>
+                    <a href="#alignMenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">序列比对</a>
+                    <ul class="collapse list-unstyled" id="alignMenu">
+                        <li>
+                            <a href="#star_alignment">比对率统计</a>
+                        </li>
+                        {% if overall_genome_region %}
+                        <li>
+                            <a href="#overall_genome_region">reads 基因区域分布</a>
+                        </li>
+                        {% endif %}
+                        {% if overall_gene_coverage %}
+                        <li>
+                            <a href="#overall_gene_coverage">reads 基因区均一性</a>
+                        </li>
+                        {% endif %}
+                        {% if overall_insert_size %}
+                        <li>
+                            <a href="#overall_insert_size">插入片段分布</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </li>
+                {% endif %}
+                {% if cite %}
+                <li>
+                    <a href="#citation">参考文献</a>
+                </li>
+                {% endif %}
+            </ul>
+
+        </nav>
+        <div id="content">
+
+            <nav class="navbar">
+                <div>
+                    <button type="button" id="sidebarCollapse" class="navbar-btn">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </button>
+                </div>
+            </nav>  
+            <div class="main">
+                {% if data_info %}
+                    {% include "modules/data_info.html" %}
+                {% endif %}
+
+                {% if star_alignment %}
+                    {% include "modules/star_alignment.html" %}
+                {% endif %}
+
+                {% if cite %}
+                    {% include "modules/citation.html" %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

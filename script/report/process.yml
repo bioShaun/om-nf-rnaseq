@@ -1,0 +1,29 @@
+process_order:
+  - data_info
+  - star_alignment
+
+process:
+  data_info:
+      label: data_summary.csv
+      table:
+        - data_summary.csv
+      plot:
+        - reads_filter
+        - reads_quality
+        - reads_gc
+      cite:
+        - data_summary_header: fastp
+  star_alignment:
+      label: mapping_summary.csv
+      table:
+        - mapping_summary.csv
+      plot:
+        - mapping_summary.png
+        - overall_genome_region.png
+        - genome_region
+        - overall_gene_coverage.png
+        - gene_coverage
+        - overall_insert_size.png
+        - insert_size
+      cite:
+        - mapping_summary_header: star

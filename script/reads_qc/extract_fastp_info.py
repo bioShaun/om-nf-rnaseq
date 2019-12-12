@@ -119,7 +119,7 @@ def extract_fastp_json(fastp_dir, outdir):
         :, 'Clean_reads'] = out_merged_df.Clean_reads.astype('int')
     out_merged_df.loc[
         :, 'Clean_bases'] = out_merged_df.Clean_bases.astype('int')
-    fastp_clean_file = outdir / 'data.summary.csv'
+    fastp_clean_file = outdir / 'data_summary.csv'
     out_merged_df.to_csv(fastp_clean_file,
                          float_format='%.3f')
 
