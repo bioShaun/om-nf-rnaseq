@@ -11,33 +11,19 @@ regexes = {
     'fastp': ['v_fastp.txt', r'fastp (\S+)'],
     'Cutadapt': ['v_cutadapt.txt', r"(\S+)"],
     'Trim Galore!': ['v_trim_galore.txt', r"version (\S+)"],
-    'STAR': ['v_star.txt', r"(\S+)"],
+    'STAR': ['v_star.txt', r"STAR_(\S+)"],
     'HISAT2': ['v_hisat2.txt', r"version (\S+)"],
-    'Picard MarkDuplicates': ['v_markduplicates.txt', r"([\d\.]+)-SNAPSHOT"],
+    'Picard': ['v_markduplicates.txt', r"([\d\.]+)-SNAPSHOT"],
     'Samtools': ['v_samtools.txt', r"samtools (\S+)"],
     'featureCounts': ['v_featurecounts.txt', r"featureCounts v(\S+)"],
     'deepTools': ['v_deeptools.txt', r"bamCoverage (\S+)"],
     'StringTie': ['v_stringtie.txt', r"(\S+)"],
+    'GffCompare': ['v_gffcompare.txt', r"gffcompare v(\S+)"],
     'Preseq': ['v_preseq.txt', r"Version: (\S+)"],
     'RSeQC': ['v_rseqc.txt', r"read_duplication.py ([\d\.]+)"],
     'MultiQC': ['v_multiqc.txt', r"multiqc, version (\S+)"],
 }
 results = OrderedDict()
-# results['nf-core/rnaseq'] = '<span style="color:#999999;\">N/A</span>'
-# results['Nextflow'] = '<span style="color:#999999;\">N/A</span>'
-# results['FastQC'] = '<span style="color:#999999;\">N/A</span>'
-# results['Cutadapt'] = '<span style="color:#999999;\">N/A</span>'
-# results['Trim Galore!'] = '<span style="color:#999999;\">N/A</span>'
-# results['STAR'] = False
-# results['HISAT2'] = False
-# results['Picard MarkDuplicates'] = '<span style="color:#999999;\">N/A</span>'
-# results['Samtools'] = '<span style="color:#999999;\">N/A</span>'
-# results['featureCounts'] = '<span style="color:#999999;\">N/A</span>'
-# results['StringTie'] = '<span style="color:#999999;\">N/A</span>'
-# results['Preseq'] = '<span style="color:#999999;\">N/A</span>'
-# results['deepTools'] = '<span style="color:#999999;\">N/A</span>'
-# results['RSeQC'] = '<span style="color:#999999;\">N/A</span>'
-# results['MultiQC'] = '<span style="color:#999999;\">N/A</span>'
 
 # Search each file using its regex
 for k, v in regexes.items():
@@ -55,14 +41,6 @@ for k in results:
         del(results[k])
 
 # Dump to YAML
-print ('''
-id: 'software_versions'
-section_name: 'Software Versions'
-plot_type: 'html'
-description: 'are collected at run time from the software output.'
-data: |
-    <dl class="dl-horizontal">
-''')
+print ("software\tversion")
 for k, v in results.items():
-    print("        <dt>{}</dt><dd><samp>{}</samp></dd>".format(k, v))
-print ("    </dl>")
+    print("{}\t{}".format(k, v))

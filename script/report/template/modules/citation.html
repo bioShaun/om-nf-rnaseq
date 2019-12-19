@@ -1,14 +1,12 @@
 <section id="citation">
 
-    <div class="container">
-        <h3>参考文献</h3>
-        <ol class="citation">
-            {% for paper in cite %}
-            <li id="citation-{{loop.index}}">
-                <p>{{paper}}</p>
-            </li>
-            {% endfor %}
-        </ol>
-    </div>
+    <h3>参考文献</h3>
+    <ol class="citation">
+        {% for paper in cite %}
+        <li id="citation-{{loop.index}}">
+            <p>{{paper}}</p>
+        </li>
+        {% endfor %}
+    </ol>
 
 </section>

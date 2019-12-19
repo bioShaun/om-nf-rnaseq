@@ -17,6 +17,7 @@ def helpMessage() {
       --bed12                       Path to reference bed file
       --ref_flat                    Path to reference ref flat
       --star_index                  Path to reference star index
+      --rrna_index                  Path to rRNA bowtie2 index
     
     Mandatory arguments:
       --proj_name                   Project name for output name
@@ -25,6 +26,7 @@ def helpMessage() {
       --outdir                      Path to analysis results 
 
     Optional:
+      --rm_rrna                     Remove rRNA sequence in reads
       --qc                          Run qc analysis
       --pipeline                    Run whole rnaseq pipeline
 
@@ -69,6 +71,7 @@ params.bed12 = false
 params.genome = false
 params.strand = 'unstranded'
 params.pipeline = false
+params.qc = false
 params.contrast = false
 params.diff_pval = 0.05
 params.diff_lgfc = 1
@@ -80,6 +83,8 @@ params.gene_length = false
 params.kegg_abbr = false
 params.kegg_backgroud = false
 params.sample_group = false
+params.rm_rrna = false
+params.rrna_index = false
 
 if (!params.kegg_backgroud) {
     kegg_backgroud = params.kegg_abbr
@@ -109,6 +114,7 @@ Channel
 
 
 // contrast file
+
 if (params.contrast) {
     contrast_file = file(params.contrast)
 } else {
@@ -134,16 +140,20 @@ if (params.contrast) {
     }
 }
 
+//
+if (params.rm_rrna) {
+    rrna_idx = Channel
+                    .fromPath("${params.rrna_index}.*.bt2")
+                    .ifEmpty { exit 1, "rRNA index not found: ${params.rrna_index}" }
+}
+rrna_idx_base = file(params.rrna_index).getName()
 
 
 // software version
 process get_software_versions {
 
-    when:
-    params.pipeline
-
     output:
-    file 'software_versions_mqc.yaml' into software_versions_yaml
+    file 'software_versions_mqc.yaml' into software_versions_yaml, software_versions_yaml_qc
 
     script:
     """
@@ -151,10 +161,10 @@ process get_software_versions {
     fastp --version &> v_fastp.txt
     STAR --version &> v_star.txt
     samtools --version &> v_samtools.txt
-    stringtie --version &> v_stringtie.txt
-    featureCounts -v &> v_featurecounts.txt
     picard MarkDuplicates --version &> v_markduplicates.txt  || true
     multiqc --version &> v_multiqc.txt
+    /public/software/stringtie/stringtie-2.0.6.Linux_x86_64/stringtie --version &> v_stringtie.txt
+    gffcompare --version &> v_gffcompare.txt
     python ${script_dir}/utils/scrape_software_versions.py &> software_versions_mqc.yaml
     """
 }
@@ -167,15 +177,19 @@ process fastp {
 
     tag "${name}"
 
-    publishDir "${params.outdir}/${params.proj_name}/data/fastp_trimmed_reads/${name}", mode: 'copy'
+    publishDir "${params.outdir}/${params.proj_name}/result/data_info/detail/${name}", mode: 'copy',
+        saveAs: {filename -> 
+            if (filename.indexOf("fq.gz") > 0)  null
+            else "${filename}" 
+            }   
 
     input:
     set name, file(reads) from raw_fq_files
 
     output:
-    file "*trimmed.R*.fq.gz" into trimmed_reads, kallisto_reads
-    file "${name}.fastp.json" into fastp_json_analysis, fastp_json_report
-    file "${name}.fastp.html" into fastp_html
+    file "*.fq.gz" into trimmed_reads
+    file "${name}.json" into fastp_json_analysis, fastp_json_report
+    file "${name}.html" into fastp_html
 
     cpus = 4
 
@@ -184,12 +198,66 @@ process fastp {
     fastp \\
         --in1 ${reads[0]} \\
         --in2 ${reads[1]} \\
-        --out1 ${name}.trimmed.R1.fq.gz \\
-        --out2 ${name}.trimmed.R2.fq.gz \\
-        --json ${name}.fastp.json \\
-        --html ${name}.fastp.html    
+        --out1 ${name}.R1.trimmed.fq.gz \\
+        --out2 ${name}.R2.trimmed.fq.gz \\
+        --json ${name}.json \\
+        --html ${name}.html    
     """
 }  
+
+
+/*
+* rm rRNA
+*/
+process rm_rRNA {
+
+    tag "${name}"
+
+    publishDir "${params.outdir}/${params.proj_name}/data/cleandata/", mode: 'copy',
+        saveAs: {filename -> 
+            if (filename.indexOf("fq.gz") > 0)  "${filename}"
+            else if (filename.indexOf("rrna.log") > 0) "../../logs/rm_rRNA/${filename}"
+            else null 
+            }    
+
+    input:
+    file reads from trimmed_reads
+    file index from rrna_idx.collect()
+
+    cpus = 16
+
+    output:
+    file "*.fq.gz" into clean_reads
+    file "${name}.rrna.log" into rrna_rm_log
+
+
+    script:
+    name = reads[0].toString() - '.R1.trimmed.fq.gz'
+    strand_sp = params.bowtie2_lib[params.strand]
+
+    if (params.rm_rrna)
+        """
+        bowtie2 --reorder --very-sensitive-local ${strand_sp} \\
+            -x ${rrna_idx_base} \\
+            -1 ${reads[0]} \\
+            -2 ${reads[1]} \\
+            -p ${task.cpus} \\
+            --un-conc-gz ${name}.R%.clean.fq.gz \\
+            --no-unal \\
+            --no-head \\
+            --no-sq \\
+            -S ${name}.sam \\
+            > ${name}.rrna.log 2>&1
+        """
+    else
+        """
+        ln -s ${reads[0]} ${name}.R1.clean.fq.gz
+        ln -s ${reads[1]} ${name}.R2.clean.fq.gz
+
+        touch ${name}.rrna.log 2>&1
+        """
+
+}
 
 
 /*
@@ -201,17 +269,19 @@ process reads_qc_summary {
 
     input:
     file 'fastp_json/*' from fastp_json_analysis.collect()
+    file 'rrna/*' from rrna_rm_log.collect()
     
     output:
-    file "data_summary.csv" into data_summary
-    file "reads_gc" into gc_plot
-    file "reads_quality" into rq_plot
-    file "reads_filter" into rf_plot
+    file "data_summary.csv" into data_summary, data_summary_qc
+    file "reads_gc" into gc_plot, gc_plot_qc
+    file "reads_quality" into rq_plot, rq_plot_qc
+    file "reads_filter" into rf_plot, rf_plot_qc
     
     script:
     """
     python ${script_dir}/reads_qc/extract_fastp_info.py \\
         --fastp-dir fastp_json \\
+        --rrna_dir rrna \\
         --outdir .
 
     /public/software/R/R-3.5.1/executable/bin/Rscript ${script_dir}/reads_qc/gc_plot.R \\
@@ -236,18 +306,18 @@ process star_mapping {
             }
 
     input:
-    file reads from trimmed_reads
+    file reads from clean_reads
     file index from star_index
     
     output:
     file "${sample_name}.bam" into unsort_bam
-    file "${sample_name}.Log.final.out" into star_log
-    file "${sample_name}.mapping_rate*" into mapping_plt
+    file "${sample_name}.Log.final.out" into star_log, star_log_qc
+    file "${sample_name}.mapping_rate*" into mapping_plt, mapping_plt_qc
 
     cpus = 40
     
     script:
-    sample_name = reads[0].toString() - '.trimmed.R1.fq.gz'
+    sample_name = reads[0].toString() - '.R1.clean.fq.gz'
     if (params.strand == 'unstranded') {
         strand_field = "--outSAMstrandField intronMotif"
     } else {
@@ -295,7 +365,7 @@ process star_sortOutput {
     file bam from unsort_bam
 
     output:
-    file "${name}.sorted.bam" into picard_bam, is_bam
+    file "${name}.sorted.bam" into picard_bam, is_bam, bam_assembly
     file "${name}.sorted.bai" into picard_bam_idx, is_bam_idx
 
     cpus = 8
@@ -326,9 +396,9 @@ process picard_qc {
     file ref_flat from ref_flat
 
     output:
-    file "${name}.RnaSeqMetrics.txt" into rnaseq_met
-    file "${name}.genome_region*" into genome_region_plt
-    file "${name}.gene_coverage*" into gene_coverage_plt
+    file "${name}.RnaSeqMetrics.txt" into rnaseq_met, rnaseq_met_qc
+    file "${name}.genome_region*" into genome_region_plt, genome_region_plt_qc
+    file "${name}.gene_coverage*" into gene_coverage_plt, gene_coverage_plt_qc
 
     cpus = 8
 
@@ -336,7 +406,7 @@ process picard_qc {
     name = bam.baseName - '.sorted'
     strand_sp = params.picard_lib[params.strand]
     """
-    picard CollectRnaSeqMetrics \\
+    picard ${params.markdup_java_options} CollectRnaSeqMetrics \\
         I=${bam} \\
         O=${name}.RnaSeqMetrics.txt \\
         REF_FLAT=${ref_flat} \\
@@ -361,8 +431,8 @@ process picard_IS {
     file bam_idx from is_bam_idx
 
     output:
-    file "${name}.insert_size_metrics.txt" into insert_size
-    file "${name}.insert_size_histogram.png" into insert_size_plot
+    file "${name}.insert_size_metrics.txt" into insert_size, insert_size_qc
+    file "${name}.insert_size_histogram.png" into insert_size_plot, insert_size_plot_qc
 
     cpus = 8
 
@@ -390,7 +460,7 @@ process qc_report {
             else if (filename.indexOf("gene_coverage") > 0) "qc/${filename}"
             else if (filename.indexOf("genome_region") > 0) "qc/${filename}"
             else if (filename.indexOf("SeqMetrics_summary.csv") > 0) "qc/${filename}"
-	else if (filename == 'report') "../qc_report"
+	        else if (filename == 'report') "../qc_report"
             else null
             }
 
@@ -398,21 +468,22 @@ process qc_report {
     params.qc
 
     input:
-    file data_summary from data_summary
-    file gc_plot from gc_plot
-    file rq_plot from rq_plot
-    file rf_plot from rf_plot
-    file ('star/*') from star_log.collect()
-    file ('star/*') from mapping_plt.collect()
-    file ('insert_size/*') from insert_size.collect()
-    file ('insert_size/*') from insert_size_plot.collect()
-    file ('rnaseq_matrix/*') from rnaseq_met.collect()
-    file ('genome_region/*') from genome_region_plt.collect()
-    file ('gene_coverage/*') from gene_coverage_plt.collect()
+    file v_software from software_versions_yaml_qc
+    file data_summary from data_summary_qc
+    file gc_plot from gc_plot_qc
+    file rq_plot from rq_plot_qc
+    file rf_plot from rf_plot_qc
+    file ('star/*') from star_log_qc.collect()
+    file ('star/*') from mapping_plt_qc.collect()
+    file ('insert_size/*') from insert_size_qc.collect()
+    file ('insert_size/*') from insert_size_plot_qc.collect()
+    file ('rnaseq_matrix/*') from rnaseq_met_qc.collect()
+    file ('genome_region/*') from genome_region_plt_qc.collect()
+    file ('gene_coverage/*') from gene_coverage_plt_qc.collect()
 
     output:
 	file "*.{csv,pdf,png}" into qc_results
-        file "report" into qc_report
+    file "report" into qc_report
 
 
     script:
@@ -432,3 +503,154 @@ process qc_report {
     
 }
 
+/*
+* Transcriptome Assembly
+*/
+
+process assembly {
+
+    tag "${name}"
+
+    publishDir "${params.outdir}/${params.proj_name}/result/assembly/detail/${name}", mode: 'copy'
+
+    when:
+    params.pipeline
+
+    input:
+    file bam from bam_assembly
+    file gtf from gtf
+
+    output:
+    file "${name}.gtf" into assembly_gtf
+    file "cmp2ref.${name}.gtf.tmap" into assembly_tmap
+
+    script:
+    name = bam.baseName - '.sorted'
+    st_direction = params.stringtie_lib[params.strand]
+    """
+    /public/software/stringtie/stringtie-2.0.6.Linux_x86_64/stringtie \\
+        -G ${gtf} ${st_direction} \\
+        --conservative \\
+        -o ${name}.gtf \\
+        ${bam} 
+        
+    gffcompare -r ${gtf} -o cmp2ref ${name}.gtf
+
+    """
+}
+
+/*
+* Novel Transcripts
+*/
+process stringtie_merge {
+
+    publishDir "${params.outdir}/${params.proj_name}", mode: 'copy',
+            saveAs: {filename ->
+                if (filename == "novel.gtf") "result/assembly/$filename"
+                else if (filename == "assembly.gtf") "result/assembly/$filename"
+                else null
+            }
+
+    when:
+    params.pipeline
+
+    input:
+    file "gtf/*" from assembly_gtf.collect()
+    file gtf from gtf
+    
+    output:
+    file "novel.gtf" into novel_gtf, novel_anno_gtf
+    file "assembly.gtf" into kallisto_idx_gtf, quant_gtf, rmats_gtf
+    file "gene_trans.map" into gene2tr_quant, gene2tr_anno
+    file "assembly_summary.p*" into assembly_unannotated_fig
+
+    script:
+    stranded_flag = params.stranded_flag[params.strand]
+    """
+    ls gtf/* > gtf.list
+
+    stringtie --merge \\
+        -G ${gtf} \\
+        -m 200 \\
+        -o assembly.gtf \\
+        -T 1 \\
+        -f 0.05 \\
+        gtf.list
+
+    gffcompare \\
+        -r ${gtf} \\
+        -R assembly.gtf \\
+        -o cmp2ref
+
+    python ${script_dir}/assembly/assembly_stats.py stats_combined \\
+       --tmap cmp2ref.assembly.gtf.tmap ${stranded_flag} \\
+       --outdir .
+
+    python ${script_dir}/assembly/novel_gtf_from_gffcompare.py \\
+        --compare-gtf cmp2ref.annotated.gtf ${stranded_flag} \\
+        --outfile novel.gtf
+
+    python ${script_dir}/assembly/get_gene_to_trans.py \\
+        --gff assembly.gtf \\
+        --out_dir .
+    """
+}
+
+
+
+/*
+* qc report
+*/
+
+process pipe_report {
+
+    publishDir "${params.outdir}/${params.proj_name}/result/", mode: 'copy',
+        saveAs: {filename -> 
+            if (filename.indexOf("pping_summary") > 0)  "alignment/${filename}"
+            else if (filename.indexOf("gene_coverage") > 0) "qc/${filename}"
+            else if (filename.indexOf("genome_region") > 0) "qc/${filename}"
+            else if (filename.indexOf("SeqMetrics_summary.csv") > 0) "qc/${filename}"
+	        else if (filename == 'report') "../analysis_report"
+            else null
+            }
+
+    when:
+    params.pipeline
+
+    input:
+    file v_software from software_versions_yaml
+    file data_summary from data_summary
+    file gc_plot from gc_plot
+    file rq_plot from rq_plot
+    file rf_plot from rf_plot
+    file ('star/*') from star_log.collect()
+    file ('star/*') from mapping_plt.collect()
+    file ('rnaseq_matrix/*') from rnaseq_met.collect()
+    file ('genome_region/*') from genome_region_plt.collect()
+    file ('gene_coverage/*') from gene_coverage_plt.collect()
+    file assembly_unannotated_fig
+    file ('assembly_tmap/*') from assembly_tmap.collect()
+
+    output:
+	file "*.{csv,pdf,png}" into analysis_results
+    file "report" into analysis_report
+
+
+    script:
+    stranded_flag = params.stranded_flag[params.strand]
+    """
+    python ${script_dir}/rnaseq_qc/star_mapping_summary.py \\
+        ./star ./
+
+    python ${script_dir}/rnaseq_qc/rnaseq_matrix_summary.py \\
+        -d ./rnaseq_matrix -o ./ -m rnaseq
+
+    python ${script_dir}/assembly/assembly_stats.py stats_all \\
+        --tmap_dir assembly_tmap ${stranded_flag} \\
+        --out_dir .
+
+    python ${script_dir}/report/report.py .
+
+    """
+    
+}

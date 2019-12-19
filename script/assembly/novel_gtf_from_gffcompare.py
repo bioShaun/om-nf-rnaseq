@@ -2,16 +2,21 @@ import fire
 from HTSeq import GFF_Reader
 
 
-NOVEL_TR_CODE = ('u', 'p')
+POLYA_NOVEL_TR_CODE = ('u', 'p')
+REBOZ_NOVEL_TR_CODE = ('u', 'p', 'x', 'i')
 OUT_ATTR = ('transcript_id', 'gene_id')
 
 
-def novel_gtf(compare_gtf, outfile):
+def novel_gtf(compare_gtf, outfile, stranded=False):
+    if stranded:
+        novel_tr_code = REBOZ_NOVEL_TR_CODE
+    else:
+        novel_tr_code = POLYA_NOVEL_TR_CODE
     novel_gtf_dict = dict()
     outfile_inf = open(outfile, 'w')
     for record in GFF_Reader(compare_gtf):
         if 'class_code' in record.attr:
-            if record.attr['class_code'] in NOVEL_TR_CODE:
+            if record.attr['class_code'] in novel_tr_code:
                 novel_gtf_dict[record.attr['transcript_id']] = 1
                 record.attr = {key: val for key,
                                val in record.attr.items()

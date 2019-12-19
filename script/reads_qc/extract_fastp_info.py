@@ -1,3 +1,4 @@
+import re
 import fire
 import json
 import glob
@@ -58,7 +59,25 @@ def json2quality(fastp_json, reads_num=1):
     return quality_df
 
 
-def extract_fastp_json(fastp_dir, outdir):
+def rrna_rates(rrna_dir, rrna_pattern):
+    rrna_files = glob.glob(f'{rrna_dir}/*{rrna_pattern}')
+    rrna_dict = dict()
+    for each_file in rrna_files:
+        with open(each_file) as file_info:
+            for eachline in file_info:
+                if 'overall alignment rate' in eachline:
+                    mapping_rate = re.search(r'(.*)%', eachline).groups()[0]
+                    mapping_rate = float(mapping_rate) / 100
+                    sample_id = PurePath(
+                        each_file).name.replace(rrna_pattern, '')
+                    rrna_dict.setdefault('Sample_id', []).append(sample_id)
+                    rrna_dict.setdefault('rRNA_rate', []).append(mapping_rate)
+    rrna_df = pd.DataFrame(rrna_dict)
+    return rrna_df
+
+
+def extract_fastp_json(fastp_dir, outdir,
+                       rrna_dir=None, rrna_pattern='.rrna.log'):
     outdir = Path(outdir)
     gc_dir = outdir / 'reads_gc'
     qual_dir = outdir / 'reads_quality'
@@ -113,6 +132,14 @@ def extract_fastp_json(fastp_dir, outdir):
     out_merged_df = merged_df.loc[:, OUT_COL]
     out_merged_df.columns = out_merged_df.columns.map(OUT_COL_MAP)
     out_merged_df.index.name = 'Sample_id'
+    if rrna_dir is not None:
+        rrna_df = rrna_rates(rrna_dir, rrna_pattern)
+        if not rrna_df.empty:
+            out_merged_df = out_merged_df.reset_index()
+            out_merged_df = out_merged_df.merge(
+                rrna_df)
+            out_merged_df = out_merged_df.set_index('Sample_id')
+            out_merged_df.sort_index(inplace=True)
     out_merged_df.loc[:, 'Raw_reads'] = out_merged_df.Raw_reads.astype('int')
     out_merged_df.loc[:, 'Raw_bases'] = out_merged_df.Raw_bases.astype('int')
     out_merged_df.loc[

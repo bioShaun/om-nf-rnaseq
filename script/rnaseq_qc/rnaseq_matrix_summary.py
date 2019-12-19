@@ -49,7 +49,7 @@ def header2label(header):
     return label
 
 
-def line_plot(plt_df, x, y, cat, out_prefix, xlab='', ylab=''):
+def line_plot(plt_df, x, y, cat, out_prefix, xlab='', ylab='', ylim=None):
     cat_num = len(plt_df.loc[:, cat].unique())
     markers = ["o"] * cat_num
     ax = sns.lineplot(x=x, dashes=False,
@@ -62,6 +62,8 @@ def line_plot(plt_df, x, y, cat, out_prefix, xlab='', ylab=''):
                        horizontalalignment='right')
     ax.set_xlabel(xlab)
     ax.set_ylabel(ylab)
+    if ylim:
+        ax.set_ylim(ylim)
     sample_num = len(ax.get_xticklabels())
     plot_height = 8 + sample_num / 10
     plot_width = 6 + sample_num / 5
@@ -111,6 +113,17 @@ def rnaseq_metrics(analysis_dir, out_dir):
     line_plot(cov_df, 'Sample', 'value',
               'Statistics', cov_pre,
               ylab="Ratio of coverage at 5' to 3'")
+    # strand specific
+    if metrics_df.PCT_CORRECT_STRAND_READS.max() > 0:
+        ss_df = metrics_df.melt(id_vars=['Sample'],
+                                value_vars=['PCT_CORRECT_STRAND_READS'],
+                                value_name='value',
+                                var_name='Statistics')
+        ss_pre = Path(out_dir) / 'overall_strand_specific'
+        line_plot(ss_df, 'Sample', 'value',
+                  'Statistics', ss_pre,
+                  ylab="Ratio of correct reads",
+                  ylim=[0, 1])
 
 
 def is_metrics(analysis_dir, out_dir):

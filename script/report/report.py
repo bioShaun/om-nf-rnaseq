@@ -6,6 +6,7 @@ import pandas as pd
 from pathlib import Path, PurePath
 from distutils import dir_util, file_util
 from pybtex.database import parse_file
+from pylatexenc.latex2text import LatexNodes2Text
 
 
 # set global values
@@ -30,7 +31,7 @@ STAR_TABLE_COLS = [
 # jinja2 load template
 env = jinja2.Environment(
     loader=jinja2.FileSystemLoader(
-    searchpath=f'{TEMP_DIR}'
+        searchpath=f'{TEMP_DIR}'
     )
 )
 template = env.get_template('index.html')
@@ -57,6 +58,7 @@ TABLE_CLEANER = {
     'mapping_summary': format_star_df,
 }
 
+
 def table2dict(table_file, sep='\t', format_func_map=TABLE_CLEANER):
     name = PurePath(table_file).stem
     format_func = format_func_map.get(name)
@@ -79,20 +81,21 @@ def plotitem2report(result_dir, report_dir, plot_flag):
     plot_item = result_dir / f'{plot_flag}'
     if plot_item.is_dir():
         outpath = report_dir / f'{TEMP_IMG_DIR}/{plot_flag}'
-        outpath.mkdir()
+        outpath.mkdir(exist_ok=True, parents=True)
         plot_list = glob.glob(f'{plot_item}/*png')
         if plot_list:
             for plot in plot_list:
                 file_util.copy_file(plot, outpath)
             plot_dict[plot_flag] = [
-                f'{TEMP_IMG_DIR}/{plot_flag}/{PurePath(each).name}' 
+                f'{TEMP_IMG_DIR}/{plot_flag}/{PurePath(each).name}'
                 for each in plot_list]
     else:
         plot_name = plot_flag
         plot_flag = PurePath(plot_flag).stem
         outpath = report_dir / f'{TEMP_IMG_DIR}'
-        file_util.copy_file(plot_item, outpath)
-        plot_dict[plot_flag] = f'{TEMP_IMG_DIR}/{plot_name}'
+        if plot_item.is_file():
+            file_util.copy_file(plot_item, outpath)
+            plot_dict[plot_flag] = f'{TEMP_IMG_DIR}/{plot_name}'
     return plot_dict
 
 
@@ -104,6 +107,8 @@ def cite_item(item, sep):
 
 
 def cite_detail(cite_name):
+    if cite_name not in BIB_DATA.entries:
+        return None
     cite_obj = BIB_DATA.entries[cite_name]
     author_list = [str(each) for each in cite_obj.persons['author']]
     author = ', '.join(author_list) + '. '
@@ -116,8 +121,9 @@ def cite_detail(cite_name):
     else:
         index = ''
     year = cite_item(cite_obj.fields.get('year'), '.')
-    return f'{author}{title}{journal}{index}{year}'
-  
+    cite_str = f'{author}{title}{journal}{index}{year}'
+    cite_str = LatexNodes2Text().latex_to_text(cite_str)
+    return cite_str
 
 
 class ReportGenerator:
@@ -126,24 +132,39 @@ class ReportGenerator:
         self.cite = 1
         self.p_order = REPORT_CFG['process_order']
         self.rs_dir = Path(result_dir)
-        self.ro_dir = Path(report_dir) 
-        self._report_dict = {'cite': []}
+        self.ro_dir = Path(report_dir)
+        self._report_dict = {'cite': [], 'software': []}
         self.process_cite = None
+        self.software_file = self.rs_dir / REPORT_CFG['software_file']
+        self.software_name = REPORT_CFG['software_name']
+        self.software_params = REPORT_CFG['software_params']
 
-    def add_cite(self):
-        for cite_dict in self.process_cite:
-            for key, val in cite_dict.items():
-                if key in self._report_dict:
-                    self._report_dict['cite'].append(cite_detail(val))
+    def add_cite_software(self):
+        software_df = pd.read_csv(self.software_file, index_col=0, sep='\t')
+        for cite_label in self.process_cite:
+            if cite_label in self._report_dict:
+                for cite in self.process_cite[cite_label]:
+                    cite_detail_str = cite_detail(cite)
+                    if cite_detail_str:
+                        self._report_dict['cite'].append(cite_detail_str)
+                        self.cite += 1
+                    software_name = self.software_name.get(cite, cite)
+                    if software_name in software_df.index:
+                        software_version = software_df.loc[
+                            software_name].version
+                        software_params = self.software_params.get(
+                            cite, 'default')
+                        self._report_dict['software'].append(
+                            [software_name, software_version, software_params])
 
     @property
     def report(self):
         for process in self.p_order:
             process_cfg = REPORT_CFG['process'][process]
             process_label = self.rs_dir / process_cfg['label']
-            process_table = process_cfg['table']
-            process_plot = process_cfg['plot']
-            self.process_cite = process_cfg['cite']
+            process_table = process_cfg.get('table', [])
+            process_plot = process_cfg.get('plot', [])
+            self.process_cite = process_cfg.get('cite', [])
             if process_label.is_file():
                 self._report_dict[process] = True
                 for table in process_table:
@@ -152,11 +173,10 @@ class ReportGenerator:
                         table2dict(table_file, sep=','))
                 for plot in process_plot:
                     self._report_dict.update(
-                         plotitem2report(self.rs_dir, self.ro_dir, plot)
+                        plotitem2report(self.rs_dir, self.ro_dir, plot)
                     )
             self._report_dict[f'{process}_cite'] = self.cite
-            self.cite += len(self.process_cite)
-            self.add_cite()
+            self.add_cite_software()
         return self._report_dict
 
 
@@ -185,4 +205,3 @@ def rnaseq_report(result_dir, proj_name='test', report_dir=None):
 
 if __name__ == "__main__":
     fire.Fire(rnaseq_report)
-

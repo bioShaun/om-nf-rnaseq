@@ -81,12 +81,27 @@
                             <a href="#overall_insert_size">插入片段分布</a>
                         </li>
                         {% endif %}
+                        {% if overall_strand_specific %}
+                        <li>
+                            <a href="#overall_insert_size">链特异文库准确性</a>
+                        </li>
+                        {% endif %}
                     </ul>
+                </li>
+                {% endif %}
+                {% if assembly_summary %}
+                <li>
+                    <a href="#stringtie_assembly">转录本组装</a>
                 </li>
                 {% endif %}
                 {% if cite %}
                 <li>
                     <a href="#citation">参考文献</a>
+                </li>
+                {% endif %}
+                {% if software %}
+                <li>
+                    <a href="#software">软件列表</a>
                 </li>
                 {% endif %}
             </ul>
@@ -112,8 +127,16 @@
                     {% include "modules/star_alignment.html" %}
                 {% endif %}
 
+                {% if assembly_summary %}
+                    {% include "modules/stringtie_assembly.html" %}
+                {% endif %}
+
                 {% if cite %}
                     {% include "modules/citation.html" %}
+                {% endif %}
+
+                {% if software %}
+                    {% include "modules/software.html" %}
                 {% endif %}
             </div>
         </div>

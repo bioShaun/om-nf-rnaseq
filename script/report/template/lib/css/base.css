@@ -48,6 +48,15 @@ body{
     font-family: "Montserrat", sans-serif;
 }
 
+.software table {
+    width: 800px; 
+    margin: 0px auto;
+}
+
+.software td {
+    white-space: pre-line;
+}
+
 .citation {
     font-family: "Montserrat", sans-serif;
 }

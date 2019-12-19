@@ -1,6 +1,31 @@
 process_order:
   - data_info
   - star_alignment
+  - stringtie_assembly
+
+
+software_file: software_versions_mqc.yaml
+
+software_name:
+  star: STAR
+  picard: Picard
+  stringtie: StringTie
+  gffcompare: GffCompare
+
+software_params:
+  star: |
+    --outFilterMultimapNmax 20 
+    --alignSJoverhangMin 8
+    --alignSJDBoverhangMin 1
+    --outFilterMismatchNmax 999
+    --alignIntronMin 20
+    --alignIntronMax 1000000
+    --alignMatesGapMax 1000000
+    --chimSegmentMin 10
+  bowtie2: --very-sensitive-local
+  picard: CollectRnaSeqMetrics
+  stringtie: --conservative
+
 
 process:
   data_info:
@@ -12,7 +37,19 @@ process:
         - reads_quality
         - reads_gc
       cite:
-        - data_summary_header: fastp
+        data_summary_header: 
+          - fastp
+          - bowtie2
+          - silva
+  stringtie_assembly:
+      label: assembly_summary.png
+      plot:
+        - assembly_summary.png
+        - assembly_summary_by_sample.png
+      cite:
+        assembly_summary:
+          - stringtie
+          - gffcompare
   star_alignment:
       label: mapping_summary.csv
       table:
@@ -25,5 +62,9 @@ process:
         - gene_coverage
         - overall_insert_size.png
         - insert_size
+        - overall_strand_specific.png
       cite:
-        - mapping_summary_header: star
+        mapping_summary_header:
+          - star
+        overall_genome_region:
+          - picard

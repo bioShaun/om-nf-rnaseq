@@ -3,12 +3,31 @@
     <h3>测序数据质量控制</h3>
 
     <div class="data-summary block">
-        <h4>数据统计表</h4>
+        <h4>数据统计</h4>
         <div class="description">
             <p>
-                获得测序序列后，我们使用 <a href="https://github.com/OpenGene/fastp" target="_blank"> <b>fastp</b> </a>
-                <a href="#citation-{{data_info_cite}}"><sup>{{data_info_cite}}</sup></a> (Shifu Chen et al. 2018) 
-                对所有的样品的测序数据进行数据质控。以下表格展示了本次测序数据的基本信息。
+                获得测序序列后，我们使用
+                <a href="https://github.com/OpenGene/fastp" target="_blank"> 
+                    <b>fastp</b> 
+                </a>
+                <a href="#citation-{{data_info_cite}}">
+                    <sup>{{data_info_cite}}</sup>
+                </a>
+                (Shifu Chen et al. 2018) 对所有的样品的测序数据进行数据质控。针对去除核糖体 RNA 建库得到的数据，我们会使用 
+                <a href="http://bowtie-bio.sourceforge.net/bowtie2/index.shtml" target="_blank"> 
+                    <b>Bowtie 2</b> 
+                </a>  
+                <a href="#citation-{{data_info_cite + 1}}">
+                    <sup>{{data_info_cite + 1}}</sup>
+                </a> 
+                (Langmead B et al. 2012) 与 
+                <a href="https://www.arb-silva.de/" target="_blank"> 
+                    <b>SILVA</b> 
+                </a> 
+                <a href="#citation-{{data_info_cite + 2}}">
+                    <sup>{{data_info_cite + 2}}</sup>
+                </a> 
+                (Quast C et al. 2013) 核糖体数据库比对，过滤比对上的 reads。以下表格展示了本次测序数据的基本信息。
             </p>
         </div>
 
@@ -25,7 +44,7 @@
                     {% for row in data_summary_body %}
                     <tr>
                         {% for cell in row %}
-                        <td>{{cell}}</td>
+                        <td class="align-middle">{{cell}}</td>
                         {% endfor %}
                     </tr>
                     {% endfor %}
@@ -40,8 +59,7 @@
         <h4>数据过滤</h4>
         <div class="description">
             <p>
-                fastp 软件对原始数据进行进行去接头和去除低质量数据的处理，
-                下图展示了数据过滤的结果。
+                fastp 软件对原始数据进行进行去接头和去除低质量数据的处理，下图展示了数据过滤的结果。
             </p>
         </div>
         <div class="plot">
@@ -67,10 +85,7 @@
         <h4>数据质量分布图</h4>
         <div class="description">
             <p>
-                样品测序质量分布图如下图所示。其中 x 轴代表碱基在 reads 中的位置
-                (因为将 read1, read2放在同一张图展示，图片的右半部分展示的是 read2 的
-                GC 分布情况，x 轴数值减去 read 长度为该碱基在 read2 中的位置)，
-                y 轴代表该位置数据质量值中位数。
+                样品测序质量分布图如下图所示。其中 x 轴代表碱基在 reads 中的位置 (因为将 read1, read2放在同一张图展示，图片的右半部分展示的是 read2 的 GC 分布情况，x 轴数值减去 read 长度为该碱基在 read2 中的位置)，y 轴代表该位置数据质量值中位数。
             </p>
         </div>
         <div class="plot">
@@ -96,13 +111,8 @@
         <h4>GC 分布图</h4>
         <div class="description">
             <p>
-                样品 GC 分布如下图所示。其中不同碱基使用不同颜色表示，
-                N 代表测序中不确定的碱基。y 轴为不同碱基的比例，
-                x 轴代表碱基在 reads 中的位置。
-                在随机文库中，不同碱基在 reads 中的位置不存在偏好，因此通常情况下，
-                代表各碱基的线条会相对平稳。
-                但因为在建库时使用的6pb随机引物会引起 reads 前几个碱基的偏好性，因此
-                图片中前几个碱基位置会出现比较大的波动。
+                样品 GC 分布如下图所示。其中不同碱基使用不同颜色表示，N 代表测序中不确定的碱基。y 轴为不同碱基的比例，
+                x 轴代表碱基在 reads 中的位置。在随机文库中，不同碱基在 reads 中的位置不存在偏好，因此通常情况下，代表各碱基的线条会相对平稳。但因为在建库时使用的6pb随机引物会引起 reads 前几个碱基的偏好性，因此图片中前几个碱基位置会出现比较大的波动。
             </p>
         </div>
         <div class="plot">

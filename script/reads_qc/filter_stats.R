@@ -22,7 +22,7 @@ blank_theme <- theme_minimal()+
     legend.title = element_blank()
   )
 
-reads_filter_plot <- function(filter_df, output) {
+reads_filter_plot <- function(filter_df, output, title="") {
   sample_number <- length(unique(filter_df$sample))
   
   filter_df$percent <- paste(round(filter_df$proportion * 100, 3), '%', sep = '')
@@ -42,7 +42,8 @@ reads_filter_plot <- function(filter_df, output) {
   pie <- ggplot(plot_df, aes(x = "", y=proportion, fill = stats)) +
     geom_bar(width = 1, stat = "identity") +
     coord_polar("y", start = 0) +
-    blank_theme + theme(axis.text.x=element_blank())
+      blank_theme + theme(axis.text.x=element_blank()) +
+    ggtitle(title)
   
   if (sample_number > 1) {
     facet_wrap_ncol = round(sqrt(sample_number))
@@ -53,7 +54,7 @@ reads_filter_plot <- function(filter_df, output) {
     pie <- pie + scale_fill_manual(values = stats_col,
                       labels = stats_lab)
   }
-  pie
+
   if (! is.null(output)) {
     plot_height <- 6 + sample_number/4
     plot_width <- 6 + sample_number/4
@@ -91,7 +92,7 @@ for (i in seq(length(filter_files))) {
   file_list[[i]] <- each_sample_df
   each_sample_out_name <- paste(sample_id, 'reads_filter', sep = '.')
   each_sample_out_path <- file.path(filter_dir, each_sample_out_name)
-  reads_filter_plot(each_sample_df, each_sample_out_path)
+  reads_filter_plot(each_sample_df, each_sample_out_path, title=sample_id)
 }
 
 #file_df <- ldply(file_list, data.frame)
