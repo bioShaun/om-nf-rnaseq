@@ -596,6 +596,49 @@ process stringtie_merge {
     """
 }
 
+/*
+* quantification
+*/
+process mk_kallisto_index {
+    tag "KALLISTO index"
+
+    publishDir "${params.outdir}/${params.proj_name}", mode: 'copy',
+        saveAs: {filename ->
+            if (filename == "novel.fa") "result/assembly/$filename"
+            else if (filename == "assembly.fa.kallisto_idx") "data/ref/$filename"
+            else if (filename == "assembly.fa") "data/ref/$filename"
+            else null
+        }
+
+    when:
+    params.pipeline
+
+    input:
+    file gtf from kallisto_idx_gtf
+    file novel_gtf from novel_gtf
+    file fasta from genome
+    
+    output:
+    file "assembly.fa" into merged_fa
+    file "novel.fa" into novel_fa
+    file "assembly.fa.kallisto_idx" into kallisto_idx
+    
+    script:
+    """
+    gffread ${gtf} \\
+        -g ${fasta} \\
+        -w assembly.fa
+
+    gffread ${novel_gtf} \\
+        -g ${fasta} \\
+        -w novel.fa    
+
+    kallisto index \\
+        -i assembly.fa.kallisto_idx \\
+        assembly.fa
+    """
+}
+
 
 
 /*
