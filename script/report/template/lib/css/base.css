@@ -1,0 +1,104 @@
+body{
+    font-family: 'Microsoft Yahei',sans-serif !important;
+    font-weight: 300;
+}
+
+.main h3 {
+    font-size: 20px;
+    font-weight: 600;
+    border-bottom: 1px solid #c1c1c1;
+    padding: 20px 0 20px 0;
+}
+
+.main h4 {
+    font-size: 18px;
+    font-weight: 500;
+    padding: 10px 0 10px 0;
+}
+
+/*start:清除浮动【推荐此方式进行清除浮动】。左浮动和右浮动都清除了，盒子刚好达到闭合的状态*/
+.clearfix:before, .clearfix:after {
+    content: "";
+    display: table;
+}
+
+.clearfix:after {
+    clear: both;
+}
+
+.clearfix {
+    *zoom: 1; /*IE/7/6*/
+}
+/*end：清除浮动*/
+
+
+.w { /*版心（可视区）。需要专门提取出来 */
+    width: 1210px;
+    margin: 0 auto;
+}
+
+.main a {
+    color: #1a94bc;
+}
+
+.table{
+    outline-style: solid;
+    outline-width: 1px;
+    outline-color: #DEE2E6;
+    font-family: "Montserrat", sans-serif;
+}
+
+.software table {
+    width: 800px; 
+    margin: 0px auto;
+}
+
+.software td {
+    white-space: pre-line;
+}
+
+.citation {
+    font-family: "Montserrat", sans-serif;
+}
+
+.plot {
+    width: 600px;
+    margin: 0 auto;
+}
+
+.plot-small {
+    width: 400px;
+    margin: 0 0 0 100px;
+}
+
+.plot-small-slider {
+    width: 400px;
+    margin: 50px 0 0 100px;
+}
+
+.plot img,.plot-small img{
+    width: 400px;
+}
+
+.fl {
+    float: left;
+}
+
+.fr {
+    float: right;
+}
+
+.block {
+    padding-bottom: 20px;
+    margin-top: -70px;
+    padding-top: 70px;    
+}
+
+.main {
+    margin-top: 60px;
+}
+
+section {
+    margin-top: -70px;
+    padding-top: 70px;
+}

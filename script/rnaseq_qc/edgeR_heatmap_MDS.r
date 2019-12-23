@@ -36,7 +36,7 @@ temp <- lapply(lapply(args, fread, skip="Geneid", header=TRUE), function(x){retu
 merge.all <- function(x, y) {
     merge(x, y, all=TRUE, by="Geneid")
 }
-data <- data.frame(Reduce(merge.all, temp))
+data <- data.frame(Reduce(merge.all, temp), check.names=F)
 
 # Clean sample name headers
 colnames(data) <- gsub(".sorted.bam", "", colnames(data))
@@ -44,6 +44,7 @@ colnames(data) <- gsub(".sorted.bam", "", colnames(data))
 # Set GeneID as row name
 rownames(data) <- data[,1]
 data[,1] <- NULL
+data <- data[rowSums(data) > 0, ]
 
 # Convert data frame to edgeR DGE object
 dataDGE <- DGEList( counts=data.matrix(data) )
@@ -53,7 +54,6 @@ dataNorm <- calcNormFactors(dataDGE)
 
 # Get the log counts per million values
 logcpm <- cpm(dataNorm, prior.count=2, log=TRUE)
-logcpm <- logcpm[rowSums(logcpm) > 0, ]
 sample_cor <- cor(logcpm)
 cor_dist <- as.dist(1-sample_cor)
 hc = hclust(cor_dist)

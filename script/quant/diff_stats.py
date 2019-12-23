@@ -35,8 +35,8 @@ def de_number(diff_dir, group_inf, contrasts, outdir):
             f'{compare_i}.{dname}-UP.edgeR.DE_results.diffgenes.txt'
         up_gene_num = de_gene_num(up_gene)
         down_gene_num = de_gene_num(down_gene)
-        diff_num_df.loc[upname, dname] = down_gene_num
-        diff_num_df.loc[dname, upname] = up_gene_num
+        diff_num_df.loc[upname, dname] = up_gene_num
+        diff_num_df.loc[dname, upname] = down_gene_num
         compare_num_df.loc[n] = [compare_i, up_gene_num, down_gene_num]
     if contrasts:
         for group_i in groups:

@@ -1,5 +1,5 @@
 # title: "RNAseq Analysis Report"
-intro_text: "RNAseq Analysis Report"
+intro_text: ""
 # report_comment: "This is a comment about this report."
 
 # report_header_info:
@@ -20,7 +20,7 @@ remove_sections:
 table_columns_visible:
     fastp:
         pct_duplication: false
-        after_filtering_q30_rate: true
+        after_filtering_q30_rate: false
         after_filtering_q30_bases: true
 
 table_columns_placement:

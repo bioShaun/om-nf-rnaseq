@@ -1,0 +1,33 @@
+<section id="stringtie_assembly">
+
+    <h3>转录本组装</h3>
+    <div id='stringtie_assembly_summary' class="block">
+        <div class="description">
+            <p>
+                获得 reads 在基因组的位置信息后。我们使用 <a href="https://ccb.jhu.edu/software/stringtie/" target="_blank"> <b>StringTie</b> </a><a href="#citation-{{stringtie_assembly_cite}}"><sup>{{stringtie_assembly_cite}}</sup></a> (Pertea M, et al. 2016) 软件，进行转录本的组装。组装完成后，我们使用 <a href="https://ccb.jhu.edu/software/stringtie/gffcompare.shtml" target="_blank"> <b>GffCompare</b></a> 软件与参考基因组的注释文件进行比较，得到之前未被注释的转录本信息。以下左图为本次分析所有样品组装结果合并后转录本的组成情况，右图为各个样品转录本组装的组成情况。           
+            </p>
+        </div>
+
+        <div class="w clearfix">
+            {% if assembly_summary %}
+            <div class="plot-small fl" style="padding-top:80px;">
+                <a class="assembly-merge-link" 
+                href="{{assembly_summary}}" data-lightbox="assembly-merge">
+                <img class="assembly-merge" src="{{assembly_summary}}" />
+                </a>
+            </div>
+            {% endif %}
+
+            {% if assembly_summary_by_sample %}
+            <div class="plot-small fl">
+                <a class="assembly-by-sample-link" 
+                href="{{assembly_summary_by_sample}}" data-lightbox="assembly-by-sample">
+                <img class="assembly-by-sample" src="{{assembly_summary_by_sample}}" />
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+
+</section>

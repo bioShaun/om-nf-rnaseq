@@ -15,7 +15,7 @@ argv <- parse_args(parser = p)
 rq_dir <- argv$rq_dir
 
 all_files <- list.files(rq_dir)
-rq_files <- all_files[grep("*reads_quality", all_files)]
+rq_files <- all_files[grep("*reads_quality.txt", all_files)]
 
 
 split_str <- function(strings, Split) {
@@ -27,7 +27,7 @@ split_str <- function(strings, Split) {
 }
 
 
-reads_quality_plot2 <- function(plot_data, output=NULL) {
+reads_quality_plot2 <- function(plot_data, output=NULL, title="") {
   
   sample_number <- length(unique(plot_data$sample))
   
@@ -41,7 +41,8 @@ reads_quality_plot2 <- function(plot_data, output=NULL) {
                color = 'grey50',
                lty = 2, size=0.5) +
     xlab("Postion") + ylab("Quality") +
-    coord_cartesian(ylim=c(20,max_qual))
+      coord_cartesian(ylim=c(20,max_qual)) +
+      ggtitle(title)
   
   if (sample_number > 1) {
     facet_wrap_ncol = round(sqrt(sample_number))
@@ -69,7 +70,7 @@ for (i in seq(length(rq_files))) {
   rq_file_list[[i]] <- each_sample_rq_df
   each_sample_out_name <- paste(sample_id, 'reads_quality.bar', sep = '.')
   each_sample_out_path <- file.path(rq_dir, each_sample_out_name)
-  reads_quality_plot2(each_sample_rq_df, each_sample_out_path)
+  reads_quality_plot2(each_sample_rq_df, each_sample_out_path, title=sample_id)
 }
 
 #rq_file_df <- ldply(rq_file_list, data.frame)

@@ -41,7 +41,7 @@ for (i in seq(length(gc_files))) {
   rs_each_sample_gc_df <- melt(each_sample_gc_df,id=c('X.Base', 'sample'))
   ## gc_test_data <- rs_each_sample_gc_df
   ## save(gc_test_data, file='gc_test.Rdata')
-  gc_line_plot(rs_each_sample_gc_df, each_sample_out_path)
+  gc_line_plot(rs_each_sample_gc_df, each_sample_out_path, title=sample_id)
 }
 
 # generate a merged plot for report 
