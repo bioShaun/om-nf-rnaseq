@@ -94,6 +94,11 @@
                     <a href="#stringtie_assembly">转录本组装</a>
                 </li>
                 {% endif %}
+                {% if lnc_number %}
+                <li>
+                    <a href="#lncrna_predict">lncRNA 预测</a>
+                </li>
+                {% endif %}
                 {% if cite %}
                 <li>
                     <a href="#citation">参考文献</a>
@@ -129,6 +134,10 @@
 
                 {% if assembly_summary %}
                     {% include "modules/stringtie_assembly.html" %}
+                {% endif %}
+
+                {% if lnc_number %}
+                    {% include "modules/lncrna_predict.html" %}
                 {% endif %}
 
                 {% if cite %}

@@ -1,0 +1,51 @@
+<section id="lncrna_predict">
+
+    <h3>lncRNA 预测</h3>
+    <div id='lncrna_predict_results' class="block">
+        <div class="description">
+            <p>          
+                我们使用 <a href="http://cpc2.cbi.pku.edu.cn/" target="_blank"> <b>CPC2</b> </a><a href="#citation-{{lncrna_predict_cite}}"><sup>{{lncrna_predict_cite}}</sup></a> (Kang Y, et al. 2017) 软件对未被注释的转录本进行编码潜能分析，得到最终的 lncRNA 候选集，如以下左图所示。右图展示了此次筛选出的 lncRNA 与数据库中已知 lnRNA (若存在) 以及蛋白编码基因进行转录长度，外显子数目以及单位基因转录本数目的比较。
+            </p>
+        </div>
+
+        <div class="w clearfix">
+            {% if lnc_number %}
+            <div class="plot-small-slider fl">
+                <div class="fotorama" 
+                    data-width="400" 
+                    data-ratio="4/3" 
+                    data-max-width="100%"
+                    data-allowfullscreen="true"
+                    data-nav="thumbs"
+                    data-transition="crossfade"
+                    data-loop="true"
+                >
+                {% for plot in lnc_number %}
+                    <img src="{{plot}}">
+                {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if lnc_feature %}
+            <div class="plot-small-slider fl">
+                <div class="fotorama" 
+                    data-width="400" 
+                    data-ratio="4/3" 
+                    data-max-width="100%"
+                    data-allowfullscreen="true"
+                    data-nav="thumbs"
+                    data-transition="crossfade"
+                    data-loop="true"
+                >
+                {% for plot in lnc_feature %}
+                    <img src="{{plot}}">
+                {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+
+</section>

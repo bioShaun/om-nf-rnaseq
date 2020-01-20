@@ -2,6 +2,7 @@ process_order:
   - data_info
   - star_alignment
   - stringtie_assembly
+  - lncrna_predict
 
 
 software_file: software_versions_mqc.yaml
@@ -11,6 +12,7 @@ software_name:
   picard: Picard
   stringtie: StringTie
   gffcompare: GffCompare
+  cpc2: CPC2
 
 software_params:
   star: |
@@ -50,6 +52,14 @@ process:
         assembly_summary:
           - stringtie
           - gffcompare
+  lncrna_predict:
+      label: lnc_number
+      plot:
+        - lnc_number
+        - lnc_feature
+      cite:
+        lnc_number:
+          - cpc2
   star_alignment:
       label: mapping_summary.csv
       table:

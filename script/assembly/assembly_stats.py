@@ -12,15 +12,20 @@ ANNOTATED_CLS = ['=', 'c', 'k', 'm', 'n', 'j', 'e', 'o']
 ERR_CLS = 'y'
 INTERGENIC_CODE = ['u', 'e']
 
+LABLE2TYPE_DICT = {
+    'noncoding': 'lncRNA',
+    'coding': 'TUCP',
+}
+
 COLOR_PAL = ['#c3f584', '#ffd271']
+CPC_COLOR_PAL = ['#ffa600', '#003f5c']
 
 
-def pie_plot(labels, values, outfile_prefix, title):
+def pie_plot(labels, values, outfile_prefix, title, color_pal=COLOR_PAL):
     val_num = len(values)
     fig1, ax1 = plt.subplots()
-    colors = COLOR_PAL
     patches, texts, autotexts = ax1.pie(
-        values, colors=colors[:val_num], labels=labels,
+        values, colors=color_pal[:val_num], labels=labels,
         autopct='%1.1f%%', startangle=90, pctdistance=0.8)
 
     for text in texts:
@@ -116,6 +121,19 @@ def gffcompare_stats_grp(tmap_dir, out_dir, stranded=False):
               ylab='Number of transcripts')
 
 
+def cpc_plot(cpc, out_dir):
+    cpc_df = pd.read_csv(cpc, sep='\t')
+    cpc_df.loc[:, 'tr_type'] = cpc_df.label.map(LABLE2TYPE_DICT)
+    tr_type_stats = cpc_df.tr_type.value_counts()
+    labels = []
+    for n, idx_i in enumerate(tr_type_stats.index):
+        labels.append(f'{idx_i} ({tr_type_stats.values[n]:,})')
+    plot_pre = Path(out_dir) / 'coding_potential'
+    pie_plot(labels, tr_type_stats.values, plot_pre,
+             title="", color_pal=CPC_COLOR_PAL)
+
+
 if __name__ == '__main__':
     fire.Fire({'stats_combined': gffcompare_stats,
-               'stats_all': gffcompare_stats_grp})
+               'stats_all': gffcompare_stats_grp,
+               'cpc_plot': cpc_plot})

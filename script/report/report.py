@@ -165,7 +165,7 @@ class ReportGenerator:
             process_table = process_cfg.get('table', [])
             process_plot = process_cfg.get('plot', [])
             self.process_cite = process_cfg.get('cite', [])
-            if process_label.is_file():
+            if process_label.exists():
                 self._report_dict[process] = True
                 for table in process_table:
                     table_file = self.rs_dir / table

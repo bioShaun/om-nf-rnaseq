@@ -14,6 +14,7 @@ def helpMessage() {
     References
       --genome                      Path to reference genome fa
       --gtf                         Path to reference gtf file
+      --split_gtf_dir               Path to gtf directory split by gene_type
       --bed12                       Path to reference bed file
       --ref_flat                    Path to reference ref flat
       --star_index                  Path to reference star index
@@ -66,12 +67,11 @@ params.outdir = false
 params.reads = false
 params.star_index = false
 params.gtf = false
+params.split_gtf_dir = false
 params.ref_flat = false
 params.bed12 = false
 params.genome = false
 params.strand = 'unstranded'
-params.pipeline = false
-params.qc = false
 params.contrast = false
 params.diff_pval = 0.05
 params.diff_lgfc = 1
@@ -85,6 +85,11 @@ params.kegg_backgroud = false
 params.sample_group = false
 params.rm_rrna = false
 params.rrna_index = false
+
+// pipeline control parameters
+params.pipeline = false
+params.qc = false
+params.quant = false
 
 if (!params.kegg_backgroud) {
     kegg_backgroud = params.kegg_abbr
@@ -105,6 +110,7 @@ gtf = check_ref_exist(params.gtf, 'gtf file')
 bed12 = check_ref_exist(params.bed12, 'bed file')
 ref_flat = check_ref_exist(params.ref_flat, 'ref flat file')
 star_index = check_ref_exist(params.star_index, 'STAR index')
+split_gtf_dir = check_ref_exist(params.split_gtf_dir, 'split gtf directory')
 
 // Prepare analysis fastq files
 Channel
@@ -121,15 +127,15 @@ if (params.contrast) {
     process generate_contrast {
         publishDir "${params.outdir}/${params.proj_name}/configure" , mode: 'copy'
 
-        when:
-        params.pipeline
-
         input:
         file sample_group from sample_group
         
         output:
         file 'contrast.ini' into contrast_file
         
+        when:
+        params.pipeline
+
         script:
         """
         python ${script_dir}/utils/make_analysis_compare.py \\
@@ -546,8 +552,7 @@ process stringtie_merge {
 
     publishDir "${params.outdir}/${params.proj_name}", mode: 'copy',
             saveAs: {filename ->
-                if (filename == "novel.gtf") "result/assembly/$filename"
-                else if (filename == "assembly.gtf") "result/assembly/$filename"
+                if (filename == "assembly.gtf") "result/assembly/$filename"
                 else null
             }
 
@@ -556,10 +561,12 @@ process stringtie_merge {
 
     input:
     file "gtf/*" from assembly_gtf.collect()
+    file fasta from genome
     file gtf from gtf
     
     output:
-    file "novel.gtf" into novel_gtf, novel_anno_gtf
+    file "novel.raw.gtf" into novel_gtf, novel_anno_gtf
+    file "novel.fa" into novel_fasta
     file "assembly.gtf" into kallisto_idx_gtf, quant_gtf, rmats_gtf
     file "gene_trans.map" into gene2tr_quant, gene2tr_anno
     file "assembly_summary.p*" into assembly_unannotated_fig
@@ -588,13 +595,75 @@ process stringtie_merge {
 
     python ${script_dir}/assembly/novel_gtf_from_gffcompare.py \\
         --compare-gtf cmp2ref.annotated.gtf ${stranded_flag} \\
-        --outfile novel.gtf
+        --outfile novel.raw.gtf
+
+    gffread novel.raw.gtf \\
+        -g ${fasta} \\
+        -w novel.fa    
 
     python ${script_dir}/assembly/get_gene_to_trans.py \\
         --gff assembly.gtf \\
         --out_dir .
     """
 }
+
+/*
+* lncRNA prediction
+*/ 
+
+process lncRNA_predict {
+
+    publishDir "${params.outdir}/${params.proj_name}/result/lncRNA_prediction/" , mode: 'copy'
+
+    when:
+    params.pipeline
+
+    input:
+    file novel_fasta from novel_fasta
+    file novel_gtf from novel_gtf
+    file split_gtf_dir from split_gtf_dir
+    file genome from genome
+
+    output:
+    file "*gene_number.{pdf,png}" into lnc_num_plt
+    file "lncRNA_feature*.{pdf,png}" into lnc_feature_plt
+    file "lncRNA.gtf" into lncRNA_gtf
+    file "TUCP.gtf" into tucp_gtf
+    file "Gene_feature.csv" into gene_feature
+    file "*fa" into lnc_tucp_fasta
+
+    script:
+
+    """
+    /public/python_env/oms_pub/bin/python \\
+        /public/software/CPC2/CPC2-beta/bin/CPC2.py \\
+            -i ${novel_fasta}
+
+    /public/python_env/work_py3/bin/python ${script_dir}/lncrna/cpc2lnc.py \\
+        --cpc cpc2output.txt --gtf ${novel_gtf} \\
+        --split_gtf_dir ${split_gtf_dir} \\
+        --outfile novel.gtf
+    
+    /public/python_env/work_py3/bin/python ${script_dir}/lncrna/lnc_feature.py \\
+        --novel-lnc novel.gtf \\
+        --gtf-split-dir ${split_gtf_dir} \\
+        --outdir .
+
+    /public/python_env/work_py3/bin/python ${script_dir}/lncrna/split_gtf_by_type.py \\
+        --gtf novel.gtf \\
+        --outdir . --novel
+
+    gffread lncRNA.gtf \\
+        -g ${genome} \\
+        -w lncRNA.fa  
+
+    gffread TUCP.gtf \\
+        -g ${genome} \\
+        -w TUCP.fa  
+    """
+}
+
+
 
 /*
 * quantification
@@ -611,16 +680,14 @@ process mk_kallisto_index {
         }
 
     when:
-    params.pipeline
+    params.quant
 
     input:
     file gtf from kallisto_idx_gtf
-    file novel_gtf from novel_gtf
     file fasta from genome
     
     output:
     file "assembly.fa" into merged_fa
-    file "novel.fa" into novel_fa
     file "assembly.fa.kallisto_idx" into kallisto_idx
     
     script:
@@ -628,10 +695,6 @@ process mk_kallisto_index {
     gffread ${gtf} \\
         -g ${fasta} \\
         -w assembly.fa
-
-    gffread ${novel_gtf} \\
-        -g ${fasta} \\
-        -w novel.fa    
 
     kallisto index \\
         -i assembly.fa.kallisto_idx \\
@@ -673,6 +736,8 @@ process pipe_report {
     file ('gene_coverage/*') from gene_coverage_plt.collect()
     file assembly_unannotated_fig
     file ('assembly_tmap/*') from assembly_tmap.collect()
+    file ('lnc_feature/*') from lnc_feature_plt
+    file ('lnc_number/*') from lnc_num_plt
 
     output:
 	file "*.{csv,pdf,png}" into analysis_results
