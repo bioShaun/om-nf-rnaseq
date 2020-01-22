@@ -92,6 +92,7 @@ def plotitem2report(result_dir, report_dir, plot_flag):
     else:
         plot_name = plot_flag
         plot_flag = PurePath(plot_flag).stem
+        plot_name = PurePath(plot_name).name
         outpath = report_dir / f'{TEMP_IMG_DIR}'
         if plot_item.is_file():
             file_util.copy_file(plot_item, outpath)
@@ -172,6 +173,7 @@ class ReportGenerator:
                     self._report_dict.update(
                         table2dict(table_file, sep=','))
                 for plot in process_plot:
+                    print(plot)
                     self._report_dict.update(
                         plotitem2report(self.rs_dir, self.ro_dir, plot)
                     )

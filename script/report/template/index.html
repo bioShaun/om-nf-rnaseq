@@ -99,6 +99,21 @@
                     <a href="#lncrna_predict">lncRNA 预测</a>
                 </li>
                 {% endif %}
+                {% if gene_expression_boxplot %}
+                <li>
+                    <a href="#quantMenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">基因定量</a>
+                    <ul class="collapse list-unstyled" id="quantMenu">
+                        <li>
+                            <a href="#quant">基因表达概况</a>
+                        </li>
+                        {% if cor_plot %}
+                        <li>
+                            <a href="#pca_correlation">样品相关性分析</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </li>
+                {% endif %}
                 {% if cite %}
                 <li>
                     <a href="#citation">参考文献</a>
@@ -138,6 +153,10 @@
 
                 {% if lnc_number %}
                     {% include "modules/lncrna_predict.html" %}
+                {% endif %}
+
+                {% if gene_expression_boxplot %}
+                    {% include "modules/quant.html" %}
                 {% endif %}
 
                 {% if cite %}

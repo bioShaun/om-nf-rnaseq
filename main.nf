@@ -189,6 +189,8 @@ process fastp {
             else "${filename}" 
             }   
 
+    cpus = 4
+
     input:
     set name, file(reads) from raw_fq_files
 
@@ -196,8 +198,6 @@ process fastp {
     file "*.fq.gz" into trimmed_reads
     file "${name}.json" into fastp_json_analysis, fastp_json_report
     file "${name}.html" into fastp_html
-
-    cpus = 4
 
     script:
     """
@@ -226,14 +226,14 @@ process rm_rRNA {
             else null 
             }    
 
+    cpus = 16
+
     input:
     file reads from trimmed_reads
     file index from rrna_idx.collect()
 
-    cpus = 16
-
     output:
-    file "*.fq.gz" into clean_reads
+    file "*.fq.gz" into clean_reads, quant_reads
     file "${name}.rrna.log" into rrna_rm_log
 
 
@@ -311,6 +311,8 @@ process star_mapping {
             else null 
             }
 
+    cpus = 40
+    
     input:
     file reads from clean_reads
     file index from star_index
@@ -320,8 +322,6 @@ process star_mapping {
     file "${sample_name}.Log.final.out" into star_log, star_log_qc
     file "${sample_name}.mapping_rate*" into mapping_plt, mapping_plt_qc
 
-    cpus = 40
-    
     script:
     sample_name = reads[0].toString() - '.R1.clean.fq.gz'
     if (params.strand == 'unstranded') {
@@ -367,14 +367,14 @@ process star_sortOutput {
     publishDir "${params.outdir}/${params.proj_name}/data/bam/${name}", mode: 'copy',
         saveAs: {filename -> filename.indexOf(".sorted.b*") > 0 ? "${filename}" : null}
 
+    cpus = 8
+
     input:
     file bam from unsort_bam
 
     output:
     file "${name}.sorted.bam" into picard_bam, is_bam, bam_assembly
     file "${name}.sorted.bai" into picard_bam_idx, is_bam_idx
-
-    cpus = 8
 
     script:
     name = bam.baseName
@@ -396,6 +396,8 @@ process picard_qc {
 
     publishDir "${params.outdir}/${params.proj_name}/result/qc/${name}", mode: 'copy'
 
+    cpus = 8
+
     input:
     file bam from picard_bam
     file bam_idx from picard_bam_idx
@@ -405,8 +407,6 @@ process picard_qc {
     file "${name}.RnaSeqMetrics.txt" into rnaseq_met, rnaseq_met_qc
     file "${name}.genome_region*" into genome_region_plt, genome_region_plt_qc
     file "${name}.gene_coverage*" into gene_coverage_plt, gene_coverage_plt_qc
-
-    cpus = 8
 
     script:
     name = bam.baseName - '.sorted'
@@ -432,6 +432,8 @@ process picard_qc {
 process picard_IS {
     tag "${name}"
 
+    cpus = 8
+
     input:
     file bam from is_bam
     file bam_idx from is_bam_idx
@@ -439,8 +441,6 @@ process picard_IS {
     output:
     file "${name}.insert_size_metrics.txt" into insert_size, insert_size_qc
     file "${name}.insert_size_histogram.png" into insert_size_plot, insert_size_plot_qc
-
-    cpus = 8
 
     script:
     name = bam.baseName - '.sorted'
@@ -470,9 +470,6 @@ process qc_report {
             else null
             }
 
-    when:
-    params.qc
-
     input:
     file v_software from software_versions_yaml_qc
     file data_summary from data_summary_qc
@@ -491,6 +488,8 @@ process qc_report {
 	file "*.{csv,pdf,png}" into qc_results
     file "report" into qc_report
 
+    when:
+    params.qc
 
     script:
     """
@@ -519,9 +518,6 @@ process assembly {
 
     publishDir "${params.outdir}/${params.proj_name}/result/assembly/detail/${name}", mode: 'copy'
 
-    when:
-    params.pipeline
-
     input:
     file bam from bam_assembly
     file gtf from gtf
@@ -529,6 +525,9 @@ process assembly {
     output:
     file "${name}.gtf" into assembly_gtf
     file "cmp2ref.${name}.gtf.tmap" into assembly_tmap
+
+    when:
+    params.pipeline
 
     script:
     name = bam.baseName - '.sorted'
@@ -556,9 +555,6 @@ process stringtie_merge {
                 else null
             }
 
-    when:
-    params.pipeline
-
     input:
     file "gtf/*" from assembly_gtf.collect()
     file fasta from genome
@@ -570,6 +566,9 @@ process stringtie_merge {
     file "assembly.gtf" into kallisto_idx_gtf, quant_gtf, rmats_gtf
     file "gene_trans.map" into gene2tr_quant, gene2tr_anno
     file "assembly_summary.p*" into assembly_unannotated_fig
+
+    when:
+    params.pipeline
 
     script:
     stranded_flag = params.stranded_flag[params.strand]
@@ -603,7 +602,8 @@ process stringtie_merge {
 
     python ${script_dir}/assembly/get_gene_to_trans.py \\
         --gff assembly.gtf \\
-        --out_dir .
+        --out_dir . \\
+        --ref
     """
 }
 
@@ -614,9 +614,6 @@ process stringtie_merge {
 process lncRNA_predict {
 
     publishDir "${params.outdir}/${params.proj_name}/result/lncRNA_prediction/" , mode: 'copy'
-
-    when:
-    params.pipeline
 
     input:
     file novel_fasta from novel_fasta
@@ -631,6 +628,9 @@ process lncRNA_predict {
     file "TUCP.gtf" into tucp_gtf
     file "Gene_feature.csv" into gene_feature
     file "*fa" into lnc_tucp_fasta
+
+    when:
+    params.pipeline
 
     script:
 
@@ -673,14 +673,9 @@ process mk_kallisto_index {
 
     publishDir "${params.outdir}/${params.proj_name}", mode: 'copy',
         saveAs: {filename ->
-            if (filename == "novel.fa") "result/assembly/$filename"
-            else if (filename == "assembly.fa.kallisto_idx") "data/ref/$filename"
-            else if (filename == "assembly.fa") "data/ref/$filename"
+            if (filename == "assembly.fa.kallisto_idx") "data/ref/$filename"
             else null
         }
-
-    when:
-    params.quant
 
     input:
     file gtf from kallisto_idx_gtf
@@ -690,6 +685,9 @@ process mk_kallisto_index {
     file "assembly.fa" into merged_fa
     file "assembly.fa.kallisto_idx" into kallisto_idx
     
+    when:
+    params.pipeline
+
     script:
     """
     gffread ${gtf} \\
@@ -702,6 +700,70 @@ process mk_kallisto_index {
     """
 }
 
+
+/*
+* Kallisto quant
+*/
+process kallisto {
+
+    tag "${name}"
+
+    publishDir "${params.outdir}/${params.proj_name}/data/kallisto/", mode: 'copy'
+
+    cpus 4
+    
+    input:
+    file reads from quant_reads
+    file index from kallisto_idx
+    
+    output:
+    file name into kallisto_out
+
+    when:
+    params.pipeline
+
+    script:
+    name = reads[0].toString() - '.R1.clean.fq.gz'
+    st_direction = params.kallisto_lib[params.strand]
+    """
+    kallisto quant ${st_direction} \\
+        --threads ${task.cpus} \\
+        -i ${index} \\
+        --output-dir=${name} \\
+        ${reads}   
+    """
+}
+
+process load_kallisto_results {
+
+    publishDir "${params.outdir}/${params.proj_name}/result/quantification/", mode: 'copy',
+        saveAs: {filename -> filename == "deg_input.RData" ? null : "$filename"}
+
+    input:
+    file 'kallisto/*' from kallisto_out.collect()
+    file sample_group from sample_group
+    file gene2tr from gene2tr_anno
+    file gene_feature from gene_feature
+
+    output:
+    file 'expression_summary' into expression_summary
+    file 'deg_input.RData' into deg_obj
+    file "expression_summary/*correlation_heatmap.png" into cor_plot
+    file "expression_summary/*PCA_plot.png" into pca_plot
+
+    when:
+    params.pipeline
+    
+    script:
+    """   
+    /public/software/R/R-3.5.1/executable/bin/Rscript ${script_dir}/quant/lnc_kallisto_to_table.R \\
+        --kallisto_dir kallisto \\
+        --sample_inf ${sample_group} \\
+        --gene2tr ${gene2tr} \\
+        --out_dir expression_summary \\
+        --gene_feature ${gene_feature}
+    """
+}
 
 
 /*
@@ -736,8 +798,11 @@ process pipe_report {
     file ('gene_coverage/*') from gene_coverage_plt.collect()
     file assembly_unannotated_fig
     file ('assembly_tmap/*') from assembly_tmap.collect()
-    file ('lnc_feature/*') from lnc_feature_plt
     file ('lnc_number/*') from lnc_num_plt
+    file ('lnc_feature/*') from lnc_feature_plt
+    file expression_summary from expression_summary
+    file ('pca_plot/*') from pca_plot.collect()
+    file ('cor_plot/*') from cor_plot.collect()
 
     output:
 	file "*.{csv,pdf,png}" into analysis_results

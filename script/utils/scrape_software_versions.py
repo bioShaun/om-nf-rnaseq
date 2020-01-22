@@ -19,6 +19,7 @@ regexes = {
     'deepTools': ['v_deeptools.txt', r"bamCoverage (\S+)"],
     'StringTie': ['v_stringtie.txt', r"(\S+)"],
     'GffCompare': ['v_gffcompare.txt', r"gffcompare v(\S+)"],
+    'Kallisto': ['v_kallisto.txt', r'kallisto, version (\S+)'],
     'Preseq': ['v_preseq.txt', r"Version: (\S+)"],
     'RSeQC': ['v_rseqc.txt', r"read_duplication.py ([\d\.]+)"],
     'MultiQC': ['v_multiqc.txt', r"multiqc, version (\S+)"],

@@ -1,0 +1,71 @@
+<section id="quant">
+
+    <h3>基因定量</h3>
+    <div id='quant_results' class="block">
+        <div class="description">
+            <p>          
+                我们使用 <a href="https://pachterlab.github.io/kallisto/" target="_blank"> <b>kallisto</b> </a><a href="#citation-{{quant_cite}}"><sup>{{quant_cite}}</sup></a> (Bray N, et al. 2015) 软件对数据质控合格的样品进行定量分析。
+                我们对 log<sub>2</sub> 标准化后基因表达值进行作图，直观反映各样品基因的整体表达情况。
+            </p>
+        </div>
+
+        {% if gene_expression_boxplot %}
+        <div class="plot">
+            <a class="quant-link" 
+                href="{{gene_expression_boxplot}}" data-lightbox="quant">
+                <img class="quant" src="{{gene_expression_boxplot}}" />
+            </a>
+        </div>
+        {% endif %}
+
+    </div>
+
+    {% if pca_plot %}
+    <div id="pca_correlation" class="block">
+        <h4>样品相关性分析</h4>
+        <div class="description">
+            <p>
+                我们对样品基因的表达量进行两两相关性分析，并绘制了相关性热图。另外，我们还通过 PCA 分析，反映各样品之间的总体的相似和差异。
+            </p>
+        </div>
+        <div class="w clearfix">
+            {% if cor_plot %}
+            <div class="plot-small-slider fl">
+                <div class="fotorama" 
+                    data-width="400" 
+                    data-ratio="4/3" 
+                    data-max-width="100%"
+                    data-allowfullscreen="true"
+                    data-nav="thumbs"
+                    data-transition="crossfade"
+                    data-loop="true"
+                >
+                {% for plot in cor_plot %}
+                    <img src="{{plot}}">
+                {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if pca_plot %}
+            <div class="plot-small-slider fl">
+                <div class="fotorama" 
+                    data-width="400" 
+                    data-ratio="4/3" 
+                    data-max-width="100%"
+                    data-allowfullscreen="true"
+                    data-nav="thumbs"
+                    data-transition="crossfade"
+                    data-loop="true"
+                >
+                {% for plot in pca_plot %}
+                    <img src="{{plot}}">
+                {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+</section>
