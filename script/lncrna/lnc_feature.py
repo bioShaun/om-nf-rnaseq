@@ -118,7 +118,20 @@ def gene_number_plot(df, out_prefix):
              title="", color_pal=colors)
 
 
-def lnc_feature(novel_lnc, gtf_split_dir, outdir):
+def gene_locus(gtf_df):
+    chrom = gtf_df.groupby(['gene_id', 'gene_biotype'])['seqname'].first()
+    start = gtf_df.groupby(['gene_id', 'gene_biotype'])['start'].min()
+    end = gtf_df.groupby(['gene_id', 'gene_biotype'])['end'].max()
+    strand = gtf_df.groupby(['gene_id', 'gene_biotype'])['strand'].first()
+    locus = pd.concat([chrom, start, end, strand], axis=1)
+    locus = locus.astype('str')
+    locus.loc[:, 'Locus'] = locus.seqname.str.cat(locus.start, sep=':')
+    locus.loc[:, 'Locus'] = locus.Locus.str.cat(locus.end, sep='-')
+    locus.loc[:, 'Locus'] = locus.Locus.str.cat(locus.strand, sep='|')
+    return locus.Locus
+
+
+def lnc_feature(novel_lnc, gtf_split_dir, outdir, gene_ann=None):
     gtf_df_list = []
     gtf_df_list.append(gtfparse.read_gtf(novel_lnc))
     split_gtfs = Path(gtf_split_dir).glob('*gtf')
@@ -134,8 +147,10 @@ def lnc_feature(novel_lnc, gtf_split_dir, outdir):
     tr_inf_df = pd.concat([tr_len_df, tr_exon_num], axis=1)
     tr_inf_df = tr_inf_df.reset_index()
     # summarize gene feature
+    gene_locus_df = gene_locus(exon_df)
     gene_tr_df = exon_df.loc[:, [
-        'gene_id', 'transcript_id', 'gene_biotype']].drop_duplicates()
+        'gene_id', 'transcript_id',
+        'gene_biotype']].drop_duplicates()
     gene_tr_df = gene_tr_df.merge(tr_inf_df, sort=False)
     gene_isoform = gene_tr_df.groupby(['gene_id', 'gene_biotype']).size()
     gene_isoform.name = 'Isoform_number'
@@ -143,11 +158,15 @@ def lnc_feature(novel_lnc, gtf_split_dir, outdir):
         'Length'].max()
     gene_exon = gene_tr_df.groupby(['gene_id', 'gene_biotype'])[
         'Exon_number'].max()
-    gene_inf = pd.concat([gene_isoform, gene_length, gene_exon], axis=1)
+    gene_inf = pd.concat([gene_locus_df, gene_isoform,
+                          gene_length, gene_exon], axis=1)
+    gene_inf_df = gene_inf.reset_index()
+    if gene_ann is not None:
+        gene_ann_df = pd.read_csv(gene_ann, sep='\t')
+        gene_inf_df = gene_inf_df.merge(gene_ann_df, how='left')
     outdir = Path(outdir)
     gene_feature_file = outdir / 'Gene_feature.csv'
-    gene_inf.to_csv(gene_feature_file)
-    gene_inf_df = gene_inf.reset_index()
+    gene_inf_df.to_csv(gene_feature_file, na_rep='--', index=False)
     # feature plot
     feature_plot_df = gene_inf_df[gene_inf_df.gene_biotype.isin(PLOT_ORDER)]
     barplot(feature_plot_df, 'Isoform_number', outdir, plot_cut=0.99)

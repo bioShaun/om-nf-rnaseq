@@ -4,6 +4,7 @@ process_order:
   - stringtie_assembly
   - lncrna_predict
   - quant
+  - diff
 
 
 software_file: software_versions_mqc.yaml
@@ -71,6 +72,16 @@ process:
       cite:
         gene_expression_boxplot:
           - kallisto
+  diff:
+      label: pcg_volcano
+      plot:
+        - pcg_volcano
+        - lnc_volcano
+        - pcg_heatmap
+        - lnc_heatmap
+      cite:
+        pcg_volcano:
+          - edgeR
   star_alignment:
       label: mapping_summary.csv
       table:

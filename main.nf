@@ -19,6 +19,7 @@ def helpMessage() {
       --ref_flat                    Path to reference ref flat
       --star_index                  Path to reference star index
       --rrna_index                  Path to rRNA bowtie2 index
+      --gene_ann                    Path to gene annotation
     
     Mandatory arguments:
       --proj_name                   Project name for output name
@@ -85,6 +86,7 @@ params.kegg_backgroud = false
 params.sample_group = false
 params.rm_rrna = false
 params.rrna_index = false
+params.gene_ann = false
 
 // pipeline control parameters
 params.pipeline = false
@@ -111,6 +113,7 @@ bed12 = check_ref_exist(params.bed12, 'bed file')
 ref_flat = check_ref_exist(params.ref_flat, 'ref flat file')
 star_index = check_ref_exist(params.star_index, 'STAR index')
 split_gtf_dir = check_ref_exist(params.split_gtf_dir, 'split gtf directory')
+gene_ann = check_ref_exist(params.gene_ann, 'Gene annotation')
 
 // Prepare analysis fastq files
 Channel
@@ -373,7 +376,7 @@ process star_sortOutput {
     file bam from unsort_bam
 
     output:
-    file "${name}.sorted.bam" into picard_bam, is_bam, bam_assembly
+    file "${name}.sorted.bam" into picard_bam, is_bam, bam_assembly, bam_rmats
     file "${name}.sorted.bai" into picard_bam_idx, is_bam_idx
 
     script:
@@ -620,13 +623,14 @@ process lncRNA_predict {
     file novel_gtf from novel_gtf
     file split_gtf_dir from split_gtf_dir
     file genome from genome
+    file gene_ann from gene_ann
 
     output:
     file "*gene_number.{pdf,png}" into lnc_num_plt
     file "lncRNA_feature*.{pdf,png}" into lnc_feature_plt
     file "lncRNA.gtf" into lncRNA_gtf
     file "TUCP.gtf" into tucp_gtf
-    file "Gene_feature.csv" into gene_feature
+    file "Gene_feature.csv" into gene_feature, gf_diff
     file "*fa" into lnc_tucp_fasta
 
     when:
@@ -647,7 +651,8 @@ process lncRNA_predict {
     /public/python_env/work_py3/bin/python ${script_dir}/lncrna/lnc_feature.py \\
         --novel-lnc novel.gtf \\
         --gtf-split-dir ${split_gtf_dir} \\
-        --outdir .
+        --outdir . \\
+        --gene_ann ${gene_ann}
 
     /public/python_env/work_py3/bin/python ${script_dir}/lncrna/split_gtf_by_type.py \\
         --gtf novel.gtf \\
@@ -765,6 +770,120 @@ process load_kallisto_results {
     """
 }
 
+/*
+Diff analysis
+*/
+process rmats_cfg {
+
+    publishDir "${params.outdir}/${params.proj_name}/configure" , mode: 'copy'
+
+    input:
+    file sample_group from sample_group
+    file contrast_file from contrast_file
+    file 'bam/*' from bam_rmats.collect()
+    
+    output:
+    file 'rmats_compare/*' into rmats_compare
+    
+    when:
+    params.pipeline
+    
+    script:
+    """
+    python ${script_dir}/utils/make_analysis_compare.py \\
+        rmats-sample-files \\
+        --bam-dir ./bam \\
+        --sample-group ${sample_group} \\
+        --out-dir rmats_compare \\
+        --contrast ${contrast_file}
+    """
+}
+
+rmats_compare
+    .flatMap()
+    .set { diff_compare }
+
+process diff_analysis {
+    tag "${compare}"
+
+    publishDir "${params.outdir}/${params.proj_name}/result/quantification/differential_analysis/", mode: 'copy',
+        saveAs: {filename -> 
+            if (filename.indexOf("png") > 0) null
+            else "${filename}"
+        }
+        
+    input:
+    file compare from diff_compare
+    file deg_obj from deg_obj
+    file sample_group from sample_group
+    file gf_diff from gf_diff
+    
+    output:
+    file compare into diff_out_go, diff_out_kegg, diff_out_all, diff_tf, diff_out_ppi, diff_out_enrich_plot, pathway_compare, diff_summary
+    file "${compare}/protein_coding.${compare}.Volcano_plot.png" into pcg_diff_plt
+    file "${compare}/lncRNA.${compare}.Volcano_plot.png" into lnc_diff_plt
+    
+    when:
+    params.pipeline
+    
+    script:
+    """
+    mv ${compare} ${compare}_compare
+
+    /public/software/R/R-3.5.1/executable/bin/Rscript ${script_dir}/quant/diff_edgeR.R \\
+        --deg_rdata ${deg_obj} \\
+        --compare ${compare} \\
+        --sample_inf ${sample_group} \\
+        --out_dir ${compare} \\
+        --qvalue ${params.exp_diff_pval} \\
+        --logfc ${params.exp_lgfc} \\
+        --gene_ann ${gf_diff}
+    """
+}
+
+/*
+* diff summary
+*/
+process diff_exp_summary {
+
+    publishDir "${params.outdir}/${params.proj_name}/result/quantification/expression_summary", mode: 'copy',
+        saveAs: {filename -> 
+            if (filename.indexOf("png") > 0) null
+            else "${filename}"
+        }
+
+    input:
+    file expression_summary from expression_summary
+    file "diff/*" from diff_summary.collect()
+    file sample_group from sample_group
+
+    output:
+    file "lncRNA" into lnc_diff_summary_out
+    file "protein_coding" into pcg_diff_summary_out
+    file "lncRNA/*png" into lnc_diff_cls_plt
+    file "protein_coding/*png" into pcg_diff_cls_plt
+
+    when:
+    params.pipeline
+
+    script:
+    """
+    /public/software/R/R-3.5.1/executable/bin/Rscript ${script_dir}/quant/quant_report.R \\
+        --exp_dir ${expression_summary} \\
+        --diff_dir diff \\
+        --sample_inf ${sample_group} \\
+        --out_dir ./protein_coding \\
+        --type protein_coding
+
+    /public/software/R/R-3.5.1/executable/bin/Rscript ${script_dir}/quant/quant_report.R \\
+        --exp_dir ${expression_summary} \\
+        --diff_dir diff \\
+        --sample_inf ${sample_group} \\
+        --out_dir ./lncRNA \\
+        --type lncRNA
+    """
+}
+
 
 /*
 * qc report
@@ -781,9 +900,6 @@ process pipe_report {
 	        else if (filename == 'report') "../analysis_report"
             else null
             }
-
-    when:
-    params.pipeline
 
     input:
     file v_software from software_versions_yaml
@@ -803,11 +919,17 @@ process pipe_report {
     file expression_summary from expression_summary
     file ('pca_plot/*') from pca_plot.collect()
     file ('cor_plot/*') from cor_plot.collect()
+    file ('pcg_volcano/*') from pcg_diff_plt.collect()
+    file ('lnc_volcano/*') from lnc_diff_plt.collect()
+    file ('pcg_heatmap/*') from pcg_diff_cls_plt
+    file ('lnc_heatmap/*') from lnc_diff_cls_plt
 
     output:
 	file "*.{csv,pdf,png}" into analysis_results
     file "report" into analysis_report
 
+    when:
+    params.pipeline
 
     script:
     stranded_flag = params.stranded_flag[params.strand]

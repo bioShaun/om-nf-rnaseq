@@ -83,7 +83,7 @@
                         {% endif %}
                         {% if overall_strand_specific %}
                         <li>
-                            <a href="#overall_insert_size">链特异文库准确性</a>
+                            <a href="#overall_strand_specific">链特异文库准确性</a>
                         </li>
                         {% endif %}
                     </ul>
@@ -109,6 +109,21 @@
                         {% if cor_plot %}
                         <li>
                             <a href="#pca_correlation">样品相关性分析</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </li>
+                {% endif %}
+                {% if pcg_volcano %}
+                <li>
+                    <a href="#diffMenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">差异分析</a>
+                    <ul class="collapse list-unstyled" id="diffMenu">
+                        <li>
+                            <a href="#diff">差异基因火山图</a>
+                        </li>
+                        {% if pcg_heatmap %}
+                        <li>
+                            <a href="#heatmap">差异性基因聚类</a>
                         </li>
                         {% endif %}
                     </ul>
@@ -157,6 +172,10 @@
 
                 {% if gene_expression_boxplot %}
                     {% include "modules/quant.html" %}
+                {% endif %}
+
+                {% if pcg_volcano %}
+                    {% include "modules/diff.html" %}
                 {% endif %}
 
                 {% if cite %}

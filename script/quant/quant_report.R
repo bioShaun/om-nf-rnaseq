@@ -1,8 +1,11 @@
+suppressMessages(library(stringr))
 suppressMessages(library(argparser))
 suppressMessages(library(plyr))
 suppressMessages(library(dplyr))
 suppressMessages(library(data.table))
 suppressMessages(library(omplotr))
+
+options(stringsAsFactors = F)
 
 p <- arg_parser("for expression analysis report plot")
 p <- add_argument(p, "--exp_dir", help = "expression summary directory")
@@ -11,6 +14,7 @@ p <- add_argument(p, "--sample_inf", help = "sample information with sample name
 p <- add_argument(p, "--out_dir", help = "output directory")
 p <- add_argument(p, "--qvalue", help = "diff gene qvalue cutoff", default = 0.05)
 p <- add_argument(p, "--logfc", help = "diff gene logfc cutoff", default = 1)
+p <- add_argument(p, "--type", help = "gene biotype")
 argv <- parse_args(p)
 
 DIFF_HEATMAP_GENE = 30000
@@ -25,6 +29,10 @@ sample_inf <- argv$sample_inf
 out_dir <- argv$out_dir
 qvalue <- argv$qvalue
 logfc <- argv$logfc
+gene_type <- argv$type
+
+
+dir.create(out_dir, showWarnings = FALSE)
 
 samples <- read.delim(sample_inf, stringsAsFactors = F, header = F)
 colnames(samples) <- c("sample", "condition")
@@ -38,6 +46,7 @@ for (each_compare in compare_names) {
   each_compare_file = file.path(diff_dir, each_compare, each_compare_name)
   each_compare_df <- fread(each_compare_file)
   each_compare_diff_df <- filter(each_compare_df, abs(logFC) >= logfc, FDR <= qvalue)
+  each_compare_diff_df <- each_compare_diff_df[str_detect(each_compare_diff_df$gene_biotype, gene_type), ]
   each_diff_genes <- each_compare_diff_df$Gene_ID
   diff_genes <- c(diff_genes, each_diff_genes)
 }
@@ -58,31 +67,34 @@ out_diff_gene_tpm_matrix <- filter(gene_tpm_matrix_df, Gene_ID %in% diff_gene_id
 
 if (dim(out_diff_gene_raw_count_matrix)[1] > 0) {
   write.table(out_diff_gene_raw_count_matrix, 
-    file = paste(out_dir, "Diff.genes.raw.count.txt",
-    sep = "/"), quote = F, row.names = F, sep = "\t")
+    file = paste(out_dir, "/", gene_type, ".diff.genes.raw.count.txt",
+    sep = ""), quote = F, row.names = F, sep = "\t")
   write.table(out_diff_gene_tmm_count_matrix, 
-    file = paste(out_dir, "Diff.genes.tmm.count.txt",
-    sep = "/"), quote = F, row.names = F, sep = "\t")
+    file = paste(out_dir, "/", gene_type, ".diff.genes.tmm.count.txt",
+    sep = ""), quote = F, row.names = F, sep = "\t")
   write.table(out_diff_gene_tpm_matrix, 
-    file = paste(out_dir, "Diff.genes.tpm.txt",
-    sep = "/"), quote = F, row.names = F, sep = "\t")
+    file = paste(out_dir, "/", gene_type, ".diff.genes.tpm.txt",
+    sep = ""), quote = F, row.names = F, sep = "\t")
   diff_gene_tpm_matrix <- out_diff_gene_tpm_matrix[, -1]
   rownames(diff_gene_tpm_matrix) <- out_diff_gene_tpm_matrix[, 1]
+  diff_gene_tpm_matrix <- diff_gene_tpm_matrix[, samples$sample]
 
   # plot heatmap
+  heatmap_name = paste(gene_type, "diff.genes.heatmap", sep='.')
+  heatmap_prefix = file.path(out_dir, heatmap_name)
   diff_gene_count = dim(diff_gene_tpm_matrix)[1]
   if (diff_gene_count <= DIFF_HEATMAP_GENE) {
-    om_heatmap(diff_gene_tpm_matrix, samples=samples, outdir=out_dir)
+    om_heatmap(diff_gene_tpm_matrix, samples=samples, out_prefix=heatmap_prefix)
   } else {
     gene_mean_exp <- sort(rowMeans(diff_gene_tpm_matrix), decreasing = T)
     top_genes <- names(gene_mean_exp[1:DIFF_HEATMAP_GENE])
     diff_gene_tpm_matrix <- diff_gene_tpm_matrix[top_genes, ]
-    om_heatmap(diff_gene_tpm_matrix, samples, outdir=out_dir)
+    om_heatmap(diff_gene_tpm_matrix, samples, out_prefix=heatmap_prefix)
     diff_gene_count <- dim(diff_gene_tpm_matrix)[1]
   }
 
   # cluster plot
-  cluster_data_dir <- file.path(out_dir, "cluster_data")
+  cluster_data_dir <- file.path(out_dir, paste(gene_type, "cluster_data", sep='_'))
   dir.create(cluster_data_dir, showWarnings = F)
   diff_matrix <- as.matrix(diff_gene_tpm_matrix)
   log_diff_matrix <- log2(diff_matrix + 1)
@@ -122,6 +134,6 @@ if (dim(out_diff_gene_raw_count_matrix)[1] > 0) {
   melt_all_cluster_df <- melt(all_cluster_df, id = c("cluster", "Gene_id"))
   melt_all_cluster_df$variable <- factor(melt_all_cluster_df$variable, levels = samples$sample)
   melt_all_cluster_df$cluster <- factor(melt_all_cluster_df$cluster, levels = unique(melt_all_cluster_df$cluster))
-  all_cluster_prefix = file.path(out_dir, 'Diff.genes.cluster')
+  all_cluster_prefix = file.path(out_dir, paste(gene_type, 'diff.genes.cluster', sep="."))
   om_cluster_plot(melt_all_cluster_df, out_prefix = all_cluster_prefix)
 }

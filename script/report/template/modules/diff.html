@@ -1,0 +1,101 @@
+<section id="diff">
+
+    <h3>差异分析</h3>
+    <div id='diff_results' class="block">
+        <div class="description">
+            <p>          
+                定量分析结束后，我们需要通过差异分析得到不同生物学重复之间的差异基因，从而对这些差异表达的基因进行后续功能研究。差异分析的结果如下所>示。我们使用 <a href="https://bioconductor.org/packages/release/bioc/html/edgeR.html" target="_blank"> <b>edgeR</b> </a><a href="#citation-{{diff_cite}}"><sup>{{diff_cite}}</sup></a> (Robinson MD,et al. 2010) 对生物学重复间两两进行差异分析。通过差异分析火山图，我们可以非常直观并且合理地筛选出在两个样本间发生差异表达的基因。左右两图分别展示了蛋白编码基因和 lncRNA 的差异表达火山图。
+            </p>
+        </div>
+
+        {% if pcg_volcano %}
+        <div class="w clearfix">
+            {% if pcg_volcano %}
+            <div class="plot-small-slider fl">
+                <div class="fotorama" 
+                    data-width="400" 
+                    data-ratio="4/3" 
+                    data-max-width="100%"
+                    data-allowfullscreen="true"
+                    data-nav="thumbs"
+                    data-transition="crossfade"
+                    data-loop="true"
+                >
+                {% for plot in pcg_volcano %}
+                    <img src="{{plot}}">
+                {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if lnc_volcano %}
+            <div class="plot-small-slider fl">
+                <div class="fotorama" 
+                    data-width="400" 
+                    data-ratio="4/3" 
+                    data-max-width="100%"
+                    data-allowfullscreen="true"
+                    data-nav="thumbs"
+                    data-transition="crossfade"
+                    data-loop="true"
+                >
+                {% for plot in lnc_volcano %}
+                    <img src="{{plot}}">
+                {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+    </div>
+
+    {% if pcg_heatmap %}
+    <div id="heatmap" class="block">
+        <h4>差异性基因聚类</h4>
+        <div class="description">
+            <p>
+                通过对差异表达基因进行聚类分析，我们能够获得表达模式相近的基因集。以下左右两图分别展示了差异表达蛋白编码基因和 lncRNA 的聚类热图和折线图 (折线图仅展示部分结果，全部结果见结果文件)。
+            </p>
+        </div>
+        <div class="w clearfix">
+            {% if pcg_heatmap %}
+            <div class="plot-small-slider fl">
+                <div class="fotorama" 
+                    data-width="400" 
+                    data-ratio="4/3" 
+                    data-max-width="100%"
+                    data-allowfullscreen="true"
+                    data-nav="thumbs"
+                    data-transition="crossfade"
+                    data-loop="true"
+                >
+                {% for plot in pcg_heatmap %}
+                    <img src="{{plot}}">
+                {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if lnc_heatmap %}
+            <div class="plot-small-slider fl">
+                <div class="fotorama" 
+                    data-width="400" 
+                    data-ratio="4/3" 
+                    data-max-width="100%"
+                    data-allowfullscreen="true"
+                    data-nav="thumbs"
+                    data-transition="crossfade"
+                    data-loop="true"
+                >
+                {% for plot in lnc_heatmap %}
+                    <img src="{{plot}}">
+                {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+</section>

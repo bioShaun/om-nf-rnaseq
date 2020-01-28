@@ -212,22 +212,28 @@ deg_obj_list <- list(deg_obj=deg_obj[keep, ],
 save(deg_obj_list, file='deg_input.RData')
 
 ## output quant table
-output_matrix <- function(exp_matrix, out_dir, out_name) {
+output_matrix <- function(exp_matrix, gene_ann, out_dir, out_name) {
     out_df <- as.data.frame(exp_matrix)
     out_df <- round(out_df, 3)
     out_df <- rownames_to_column(out_df, var="Gene_ID")
+    out_df <- merge(gene_ann, out_df, by.x='gene_id', by.y='Gene_ID', all.y=T)
+    colnames(out_df)[1] <- 'Gene_ID'
+    out_df[is.na(out_df)] <- '--'
     write.table(out_df,
                 file = paste(out_dir, out_name, sep = '/'),
                 quote=F, row.names = F, sep = '\t')
 }
 
-output_matrix(cts, expression_stat_dir, 'Gene.raw.count.txt')
-output_matrix(gene_tpm_matrix, expression_stat_dir, 'Gene.tpm.txt')
-output_matrix(norm_cts, expression_stat_dir, 'Gene.TMM.count.txt')
-
 ## boxplot
 gf_df <- read.csv(gene_feature)
+gf_df <- subset(gf_df, select = -c(Isoform_number, Length, Exon_number))
+
+output_matrix(cts, gf_df, expression_stat_dir, 'Gene.raw.count.txt')
+output_matrix(gene_tpm_matrix, gf_df, expression_stat_dir, 'Gene.tpm.txt')
+output_matrix(norm_cts, gf_df, expression_stat_dir, 'Gene.TMM.count.txt')
+
 gf_df <- gf_df[str_detect(gf_df$gene_biotype, 'protein_coding') | str_detect(gf_df$gene_biotype, 'lncRNA'), ]
+gf_df[str_detect(gf_df$gene_biotype, 'lncRNA'),]$gene_biotype <- 'lncRNA'
 om_lnc_boxplot(gene_tpm_matrix, samples, gf_df,
            outdir=expression_stat_dir)
 
