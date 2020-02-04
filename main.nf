@@ -87,6 +87,7 @@ params.sample_group = false
 params.rm_rrna = false
 params.rrna_index = false
 params.gene_ann = false
+params.min_cluster_grp = 3
 
 // pipeline control parameters
 params.pipeline = false
@@ -846,10 +847,12 @@ process diff_analysis {
 */
 process diff_exp_summary {
 
-    publishDir "${params.outdir}/${params.proj_name}/result/quantification/expression_summary", mode: 'copy',
+    publishDir "${params.outdir}/${params.proj_name}/result/expression_summary", mode: 'copy',
         saveAs: {filename -> 
-            if (filename.indexOf("png") > 0) null
-            else "${filename}"
+            if (filename.indexOf("count.txt") > 0) "quantification/expression_summary/${filename}"
+            else if (filename.indexOf("tpm.txt") > 0) "quantification/expression_summary/${filename}"
+            else if (filename.indexOf("heatmap") > 0) "quantification/expression_summary/${filename}"
+            else "lncRNA_function/${filename}"
         }
 
     input:
@@ -858,10 +861,11 @@ process diff_exp_summary {
     file sample_group from sample_group
 
     output:
-    file "lncRNA" into lnc_diff_summary_out
-    file "protein_coding" into pcg_diff_summary_out
-    file "lncRNA/*png" into lnc_diff_cls_plt
-    file "protein_coding/*png" into pcg_diff_cls_plt
+    file "*heatmap.{pdf,png}" into diff_heatmap
+    file 'Diff_genes*count.txt' into diff_count
+    file 'Diff_genes_tpm.txt' into diff_tpm
+    file 'cluster_plot' optional true into cluster_plot
+    file 'Diff_genes_cluster.txt' optional true into cluster_genes
 
     when:
     params.pipeline
@@ -872,15 +876,8 @@ process diff_exp_summary {
         --exp_dir ${expression_summary} \\
         --diff_dir diff \\
         --sample_inf ${sample_group} \\
-        --out_dir ./protein_coding \\
-        --type protein_coding
-
-    /public/software/R/R-3.5.1/executable/bin/Rscript ${script_dir}/quant/quant_report.R \\
-        --exp_dir ${expression_summary} \\
-        --diff_dir diff \\
-        --sample_inf ${sample_group} \\
-        --out_dir ./lncRNA \\
-        --type lncRNA
+        --out_dir . \\
+        --grp_num ${params.min_cluster_grp}
     """
 }
 
@@ -921,8 +918,9 @@ process pipe_report {
     file ('cor_plot/*') from cor_plot.collect()
     file ('pcg_volcano/*') from pcg_diff_plt.collect()
     file ('lnc_volcano/*') from lnc_diff_plt.collect()
-    file ('pcg_heatmap/*') from pcg_diff_cls_plt
-    file ('lnc_heatmap/*') from lnc_diff_cls_plt
+    file ('heatmap/*') from diff_heatmap
+    file cluster_plot from cluster_plot
+
 
     output:
 	file "*.{csv,pdf,png}" into analysis_results

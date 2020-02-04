@@ -77,8 +77,8 @@ process:
       plot:
         - pcg_volcano
         - lnc_volcano
-        - pcg_heatmap
-        - lnc_heatmap
+        - heatmap/protein_coding_diff_genes_heatmap.png
+        - heatmap/lncRNA_diff_genes_heatmap.png
       cite:
         pcg_volcano:
           - edgeR
