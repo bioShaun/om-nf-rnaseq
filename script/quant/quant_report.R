@@ -114,7 +114,7 @@ argv <- parse_args(p)
 	}
 
 
-	om_lnc_cluster_plot <- function(plot_data, out_prefix=NULL) {
+	om_lnc_cluster_plot <- function(plot_data, out_prefix=NULL, title="") {
 
 	  #cluster_number = length(unique(plot_data$gene_biotype))
 	  #col_theme <- colorRampPalette(heatmap_col)(cluster_number)
@@ -125,7 +125,7 @@ argv <- parse_args(p)
 	  cluster_plot <- ggplot(plot_data, aes(x=variable, y=value, group = Gene_ID, color=gene_biotype)) +
 	    geom_line(alpha = 0.5) +
 	    scale_color_brewer(palette = 'Set1') +
-	    xlab("") + ylab("Scaled log10(tpm+1)") + theme_cluster
+	    xlab("") + ylab("Scaled log10(tpm+1)") + ggtitle(title) + theme_cluster
 
 	  if (! is.null(out_prefix)) {
 	    plot_height <- 6  
@@ -215,7 +215,9 @@ argv <- parse_args(p)
 	    grp_mean_df <- t(grp_mean_df[, -1])
 	  
 	    cluster_data_dir <- file.path(out_dir, "cluster_plot")
+            cluster_gene_dir <- file.path(out_dir, "cluster_genes")
 	    dir.create(cluster_data_dir, showWarnings = F)
+	    dir.create(cluster_gene_dir, showWarnings = F)
 	    diff_matrix <- as.matrix(grp_mean_df)
 	    log_diff_matrix <- log2(diff_matrix + 1)
 	    # center rows, mean substracted
@@ -235,11 +237,15 @@ argv <- parse_args(p)
 	      partition_i = (gene_partition_assignments == i)
 	      partition_data = scale_log_diff_matrix[partition_i, , drop = F]
 	      partition_genes = names(gene_partition_assignments[partition_i])
+              
 	      partition_genes_df = filter(exp_df, Gene_ID %in% partition_genes)
 	      ann_cols <- colnames(partition_genes_df)[! colnames(partition_genes_df) %in% samples$sample]
 	      partition_genes_df = partition_genes_df[, ann_cols]
 	  
-	      cluster_name <- paste("cluster", i, sep = "_")
+              pad_num <- ceiling(log10(max_cluster_count) + 1)
+	      cluster_name <- paste("cluster", str_pad(i, pad_num, pad = "0"), sep = "_")
+              cluster_gene_file <- file.path(cluster_gene_dir, cluster_name)
+              write(partition_genes, file = cluster_gene_file)
 	      partition_data_df <- as.data.frame(partition_data)
 	      partition_data_df <- cbind(Gene_ID = rownames(partition_data_df), partition_data_df)
 	      #write.table(partition_data_df, file = paste(cluster_data_dir, "/", cluster_name,
@@ -251,7 +257,7 @@ argv <- parse_args(p)
 					     id.vars = c("Gene_ID", "gene_biotype"),
 					     measure.vars=unique(samples$condition))
 	      out_prefix <- file.path(cluster_data_dir, cluster_name)
-	      om_lnc_cluster_plot(melt_partition_data_df, out_prefix = out_prefix)
+	      om_lnc_cluster_plot(melt_partition_data_df, out_prefix = out_prefix, title=cluster_name)
 	      all_partition_list[[m]] <- partition_genes_df
 	      m <- m + 1
 	    }

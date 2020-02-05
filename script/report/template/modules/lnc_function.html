@@ -1,0 +1,89 @@
+<section id="lnc_function">
+
+    <h3>lncRNA 功能分析</h3>
+    <div id='lnc_function_results' class="block">
+        <div class="description">
+            <p>          
+                因为 lncRNA 不编码蛋白，所以我们通常根据 lncRNA 临近的蛋白编码基因或者与 lncRNA 具有相似表达模式的蛋白编码基因推测 lncRNA 的功能。
+            </p>
+        </div>
+
+
+    </div>
+
+    {% if cluster_plot %}
+    <div id="lnc_cluster" class="block">
+        <h4>lncRNA 表达聚类分析</h4>
+        <div class="description">
+            <p>
+                通过对差异表达 lncRNA 和蛋白编码基因进行聚类分析，并对每个表达模式下的蛋白编码基因进行 GO 和 KEGG 富集分析，推测该表达模式下的 lncRNA 的功能。以下上图为 lncRNA 和蛋白编码基因集在不同组织，试验条件下的表达模式，下图为该基因集的蛋白编码基因富集到的 GO Term 和 KEGG 通路。
+            </p>
+        </div>
+
+        {% if cluster_plot %}
+
+        <div class="plot clearfix">
+            <div class="plot-small-slider fl">
+                <div class="fotorama" 
+                    data-width="600" 
+                    data-ratio="4/3" 
+                    data-max-width="100%"
+                    data-allowfullscreen="true"
+                    data-nav="thumbs"
+                    data-transition="crossfade"
+                    data-loop="true"
+                >
+                {% for plot in cluster_plot %}
+                    <img src="{{plot}}">
+                {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <hr>
+
+        {% if lnc_cluster_go %}
+        <div class="w clearfix">
+            {% if lnc_cluster_go %}
+            <div class="plot-small-slider fl">
+                <div class="fotorama" 
+                    data-width="400" 
+                    data-ratio="4/3" 
+                    data-max-width="100%"
+                    data-allowfullscreen="true"
+                    data-nav="thumbs"
+                    data-transition="crossfade"
+                    data-loop="true"
+                >
+                {% for plot in lnc_cluster_go %}
+                    <img src="{{plot}}">
+                {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if lnc_cluster_kegg %}
+            <div class="plot-small-slider fl">
+                <div class="fotorama" 
+                    data-width="400" 
+                    data-ratio="4/3" 
+                    data-max-width="100%"
+                    data-allowfullscreen="true"
+                    data-nav="thumbs"
+                    data-transition="crossfade"
+                    data-loop="true"
+                >
+                {% for plot in lnc_cluster_kegg %}
+                    <img src="{{plot}}">
+                {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+    </div>
+    {% endif %}
+
+</section>

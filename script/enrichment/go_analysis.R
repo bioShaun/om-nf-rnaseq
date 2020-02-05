@@ -29,12 +29,17 @@ gene_length_df <- read.delim(gene_length_file, header = F)
 
 # read gene list
 gene_list_vector <- scan(gene_list, what=character())
-# output file name
-out_preifx_name <- paste(name, "go.enrichment", sep = ".")
-out_prefix_path <- file.path(go_out_dir, out_preifx_name)
-# run goseq
-enrich_result <- om_goseq(gene_list_vector, gene_length_df,
-  go_anno_file, out_prefix_path)
-# run topgo
-om_topgo(go_anno_file, gene_list_vector, enrich_result, name,
-  togo_dir)
+gene_ann_df <- read.delim(go_anno_file, header = F, col.names = c('gene', 'go'))
+go_genes <- gene_list_vector[gene_list_vector %in% gene_ann_df$gene]
+
+if (length(go_genes) > 0) {
+  # output file name
+  out_preifx_name <- paste(name, "go_enrichment", sep = "_")
+  out_prefix_path <- file.path(go_out_dir, out_preifx_name)
+  # run goseq
+  enrich_result <- om_goseq(gene_list_vector, gene_length_df,
+    go_anno_file, out_prefix_path)
+  # run topgo
+  om_topgo(go_anno_file, gene_list_vector, enrich_result, name,
+    togo_dir)
+}

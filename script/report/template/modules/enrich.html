@@ -1,0 +1,69 @@
+<section id="enrich">
+
+    <h3>差异基因富集分析</h3>
+    <div id='enrich_results' class="block">
+        <div class="description">
+            <p>          
+                功能富集的分析能够使我们发现差异表达基因是否在某些生物学通路或特定功能基因集中出现的概率超出预期，反映差异基因可能与这些通路或者生物功能相关。
+            </p>
+        </div>
+
+    </div>
+
+    {% if go_barplot %}
+    <div id="go_enrich" class="block">
+        <h4>GO 富集分析</h4>
+        <div class="description">
+            <p>
+                <a href="http://www.bioconductor.org/packages/release/bioc/html/goseq.html" target="_blank"> <b>GOseq</b> </a><a href="#citation-{{enrich_cite}}"><sup>{{enrich_cite}}</sup></a> (Young et al, 2010) 基于 Wallenius 非中心超几何分布原理，并能够对基因长度进行校正，适用于 RNAseq 数据的分析。下图为 GO 富集分析柱状图。对每个比较组，我们将该比较中所有差异基因，以及上、下调表达的差异基因进行 GO 富集分析。对于富集结果，我们富集程度最高的的 20 个 Term 进行绘图，若不足 20 个，则全部展示。
+            </p>
+        </div>
+
+        <div class="plot">
+            <div class="fotorama" 
+                data-width="600" 
+                data-ratio="4/3" 
+                data-max-width="100%"
+                data-allowfullscreen="true"
+                data-nav="thumbs"
+                data-transition="crossfade"
+                data-loop="true"
+            >
+            {% for plot in go_barplot %}
+                <img src="{{plot}}">
+            {% endfor %}
+            </div>
+        </div>
+
+    </div>
+    {% endif %}
+
+    {% if kegg_barplot %}
+    <div id="kegg_enrich" class="block">
+        <h4>KEGG 富集分析</h4>
+        <div class="description">
+            <p>
+                我们使用 <a href="http://kobas.cbi.pku.edu.cn/kobas3" target="_blank"> <b>KOBAS</b> </a><a href="#citation-{{enrich_cite + 1}}"><sup>{{enrich_cite + 1}}</sup></a> (Chen Xie,et al. 2011) 对差异基因进行KEGG富集分析。 KOBAS 每3个月会对数据库进行更新，能够保证数据的及时性。下图为 KEGG 富集分析柱状图。对每个比较组,我们将该比较组中所有差异基因,以及上、下调表达的基因进行 KEGG 富集分析。 对于富集结果,我们挑选富集程度最高的的20条通路进行绘图,若不足20条,则全部展示。
+            </p>
+        </div>
+
+        <div class="plot">
+            <div class="fotorama" 
+                data-width="600" 
+                data-ratio="4/3" 
+                data-max-width="100%"
+                data-allowfullscreen="true"
+                data-nav="thumbs"
+                data-transition="crossfade"
+                data-loop="true"
+            >
+            {% for plot in kegg_barplot %}
+                <img src="{{plot}}">
+            {% endfor %}
+            </div>
+        </div>
+
+    </div>
+    {% endif %}
+
+</section>

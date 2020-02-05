@@ -5,6 +5,8 @@ process_order:
   - lncrna_predict
   - quant
   - diff
+  - enrich
+  - lnc_function
 
 
 software_file: software_versions_mqc.yaml
@@ -82,6 +84,22 @@ process:
       cite:
         pcg_volcano:
           - edgeR
+  enrich:
+      label: go_barplot
+      plot:
+        - go_barplot
+        - kegg_barplot
+      cite:
+        go_barplot:
+          - goseq
+        kegg_barplot:
+          - kobas
+  lnc_function:
+      label: cluster_plot
+      plot:
+        - cluster_plot
+        - lnc_cluster_go
+        - lnc_cluster_kegg
   star_alignment:
       label: mapping_summary.csv
       table:

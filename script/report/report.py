@@ -82,7 +82,7 @@ def plotitem2report(result_dir, report_dir, plot_flag):
     if plot_item.is_dir():
         outpath = report_dir / f'{TEMP_IMG_DIR}/{plot_flag}'
         outpath.mkdir(exist_ok=True, parents=True)
-        plot_list = glob.glob(f'{plot_item}/*png')
+        plot_list = sorted(glob.glob(f'{plot_item}/*png'))
         if plot_list:
             for plot in plot_list:
                 file_util.copy_file(plot, outpath)

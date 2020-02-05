@@ -115,6 +115,9 @@ ref_flat = check_ref_exist(params.ref_flat, 'ref flat file')
 star_index = check_ref_exist(params.star_index, 'STAR index')
 split_gtf_dir = check_ref_exist(params.split_gtf_dir, 'split gtf directory')
 gene_ann = check_ref_exist(params.gene_ann, 'Gene annotation')
+go_anno = check_ref_exist(params.go_anno, 'GO')
+gene_length = check_ref_exist(params.gene_length, 'Gene Length')
+kegg_anno = check_ref_exist(params.kegg_anno, 'KEGG')
 
 // Prepare analysis fastq files
 Channel
@@ -316,7 +319,9 @@ process star_mapping {
             }
 
     cpus = 40
-    
+
+    queue 'bm'
+
     input:
     file reads from clean_reads
     file index from star_index
@@ -847,7 +852,7 @@ process diff_analysis {
 */
 process diff_exp_summary {
 
-    publishDir "${params.outdir}/${params.proj_name}/result/expression_summary", mode: 'copy',
+    publishDir "${params.outdir}/${params.proj_name}/result/", mode: 'copy',
         saveAs: {filename -> 
             if (filename.indexOf("count.txt") > 0) "quantification/expression_summary/${filename}"
             else if (filename.indexOf("tpm.txt") > 0) "quantification/expression_summary/${filename}"
@@ -865,7 +870,8 @@ process diff_exp_summary {
     file 'Diff_genes*count.txt' into diff_count
     file 'Diff_genes_tpm.txt' into diff_tpm
     file 'cluster_plot' optional true into cluster_plot
-    file 'Diff_genes_cluster.txt' optional true into cluster_genes
+    file 'Diff_genes_cluster.txt' optional true into cluster_gene_detail
+    file 'cluster_genes/*' optional true into cluster_gene_list
 
     when:
     params.pipeline
@@ -882,8 +888,236 @@ process diff_exp_summary {
 }
 
 
+
 /*
-* qc report
+* enrichment analysis
+*/
+// go enrichment
+
+def compare2reg = {compare ->
+    compare_name = compare.baseName
+    return ["${compare_name};ALL", "${compare_name};UP", "${compare_name};DOWN"]
+}
+
+diff_out_all
+    .flatMap(compare2reg)
+    .into { go_compare; kegg_compare; ppi_compare }
+
+process go_analysis {
+    tag "${go_compare}"
+
+    errorStrategy 'ignore'
+
+    publishDir "${params.outdir}/${params.proj_name}/result/enrichment/go/", mode: 'copy'
+
+    input:
+    file "diff/*" from diff_out_go.collect()
+    val go_compare from go_compare
+    file go_anno from go_anno
+    file gene_length from gene_length
+    
+    output:
+    file "${compare}/${compare}_${reg}_go_enrichment.txt" into go_out
+    file "${compare}/DAG/" into dag_plot
+    file "${compare}/${compare}_${reg}_go_enrichment_barplot*" into go_barplot
+
+    when:
+    params.pipeline    
+    
+    script:
+    (compare, reg) = go_compare.split(';')
+    """
+    if [ -s diff/${compare}/${compare}.${reg}.edgeR.DE_results.diffgenes.txt ]
+    then
+        /public/software/R/R-3.5.1/executable/bin/Rscript \\
+            ${script_dir}/enrichment/go_analysis.R \\
+            --name ${compare}_${reg} \\
+            --gene_list diff/${compare}/${compare}.${reg}.edgeR.DE_results.diffgenes.txt \\
+            --go_anno ${go_anno} \\
+            --gene_length ${gene_length} \\
+            --out_dir ${compare}
+    fi
+
+    if [ -s ${compare}/${compare}_${reg}_go_enrichment.txt ]
+    then
+        /public/software/R/R-3.5.1/executable/bin/Rscript \\
+            ${script_dir}/enrichment/enrich_bar.R \\
+            --enrich_file ${compare}/${compare}_${reg}_go_enrichment.txt
+    fi
+    """
+}
+
+
+//KEGG enrichment
+process kegg_analysis {
+
+    tag "${compare_reg}"
+
+    errorStrategy 'ignore'
+
+    conda "/public/software/miniconda3/envs/kobas/"
+
+    queue 'om'
+    
+    publishDir "${params.outdir}/${params.proj_name}/result/enrichment/kegg/", mode: 'copy',
+        saveAs: {filename -> filename.indexOf("kegg_enrichment") > 0 ? "$filename" : null}   
+
+    input:
+    val compare_reg from kegg_compare
+    file "diff/*" from diff_out_kegg.collect()
+    file kegg_anno from kegg_anno
+    
+    output:
+    file "${compare}/${compare}_${reg}_kegg_enrichment.txt" into kegg_out, kegg_pathway_input
+    file "${compare}.${reg}.blasttab" into kegg_pathway_blast
+    file "${compare}/${compare}_${reg}_kegg_enrichment_barplot*" into kegg_barplot
+
+    when:
+    params.pipeline    
+    
+    script:
+    (compare, reg) = compare_reg.split(';')
+    """
+    if [ -s diff/${compare}/${compare}.${reg}.edgeR.DE_results.diffgenes.txt ]
+    then
+        python ${script_dir}/utils/extract_info_by_id.py \\
+            --id diff/${compare}/${compare}.${reg}.edgeR.DE_results.diffgenes.txt \\
+            --table ${kegg_anno} \\
+            --output ${compare}.${reg}.blasttab
+    fi
+
+    if [ -s ${compare}.${reg}.blasttab ]
+    then
+        mkdir -p ${compare}
+        kobas-run \\
+            -i ${compare}.${reg}.blasttab \\
+            -t blastout:tab \\
+            -s ${params.kegg_abbr} \\
+            -b ${kegg_backgroud} \\
+            -d K \\
+            -o ${compare}/${compare}_${reg}_kegg_enrichment.txt
+    fi
+
+    if [ -s ${compare}/${compare}_${reg}_kegg_enrichment.txt ]
+    then
+        python ${script_dir}/enrichment/treat_kegg_table.py \\
+            --kegg ${compare}/${compare}_${reg}_kegg_enrichment.txt
+
+        /public/software/R/R-3.5.1/executable/bin/Rscript ${script_dir}/enrichment/enrich_bar.R \\
+            --enrich_file ${compare}/${compare}_${reg}_kegg_enrichment.txt
+    fi
+    """
+}
+
+
+/*
+* lncRNA function
+*/
+
+cluster_gene_list
+    .flatMap()
+    .into { cluster_gene_file; cluster_kegg_gene }
+
+process lnc_cluster_go {
+    tag "${cluster_name}"
+
+    errorStrategy 'ignore'
+
+    publishDir "${params.outdir}/${params.proj_name}/result/lncRNA_function/cluster_function/go/${cluster_name}", mode: 'copy'
+
+    input:
+    file cluster from cluster_gene_file
+    file go_anno from go_anno
+    file gene_length from gene_length
+    
+    output:
+    file "${cluster_name}_go_enrichment.txt" into cls_go_out
+    file "DAG" into cls_dag_plot
+    file "${cluster_name}_go_enrichment_barplot*" into cls_go_barplot
+    
+    when:
+    params.pipeline    
+
+    script:
+    cluster_name = cluster.baseName
+    """
+    /public/software/R/R-3.5.1/executable/bin/Rscript ${script_dir}/enrichment/go_analysis.R \\
+        --name ${cluster_name} \\
+        --gene_list ${cluster} \\
+        --go_anno ${go_anno} \\
+        --gene_length ${gene_length} \\
+        --out_dir .
+
+    if [ -s ${cluster_name}_go_enrichment.txt ]
+    then
+        /public/software/R/R-3.5.1/executable/bin/Rscript ${script_dir}/enrichment/enrich_bar.R \\
+            --enrich_file ${cluster_name}_go_enrichment.txt
+    fi
+    """
+}
+
+//KEGG enrichment
+process lnc_cluster_kegg {
+
+    tag "${cluster_name}"
+
+    errorStrategy 'ignore'
+
+    conda "/public/software/miniconda3/envs/kobas/"
+
+    queue 'om'
+    
+    publishDir "${params.outdir}/${params.proj_name}/result/lncRNA_function/cluster_function/kegg/${cluster_name}", mode: 'copy',
+        saveAs: {filename -> filename.indexOf("kegg_enrichment") > 0 ? "$filename" : null}   
+
+    input:
+    file cluster from cluster_kegg_gene
+    file kegg_anno from kegg_anno
+    
+    output:
+    file "${cluster_name}_kegg_enrichment.txt" into cls_kegg_out, cls_kegg_pathway_input
+    file "${cluster_name}.blasttab" into kls_cegg_pathway_blast
+    file "${cluster_name}_kegg_enrichment_barplot*" into cls_kegg_barplot
+    
+    when:
+    params.pipeline    
+    
+    script:
+    cluster_name = cluster.baseName
+    """
+    python ${script_dir}/utils/extract_info_by_id.py \\
+        --id ${cluster} \\
+        --table ${kegg_anno} \\
+        --output ${cluster_name}.blasttab
+
+
+    if [ -s ${cluster_name}.blasttab ]
+    then
+        kobas-run \\
+            -i ${cluster_name}.blasttab \\
+            -t blastout:tab \\
+            -s ${params.kegg_abbr} \\
+            -b ${kegg_backgroud} \\
+            -d K \\
+            -o ${cluster_name}_kegg_enrichment.txt
+    fi
+
+    if [ -s ${cluster_name}_kegg_enrichment.txt ]
+    then
+        python ${script_dir}/enrichment/treat_kegg_table.py \\
+            --kegg ${cluster_name}_kegg_enrichment.txt
+    fi
+
+    if [ -s ${cluster_name}_kegg_enrichment.txt ]
+    then   
+        /public/software/R/R-3.5.1/executable/bin/Rscript ${script_dir}/enrichment/enrich_bar.R \\
+            --enrich_file ${cluster_name}_kegg_enrichment.txt
+    fi
+    """
+}
+
+/*
+* analysis report
 */
 
 process pipe_report {
@@ -919,7 +1153,11 @@ process pipe_report {
     file ('pcg_volcano/*') from pcg_diff_plt.collect()
     file ('lnc_volcano/*') from lnc_diff_plt.collect()
     file ('heatmap/*') from diff_heatmap
+    file ('go_barplot/*') from go_barplot.collect()
+    file ('kegg_barplot/*') from kegg_barplot.collect()
     file cluster_plot from cluster_plot
+    file ('lnc_cluster_go/*') from cls_go_barplot.collect()
+    file ('lnc_cluster_kegg/*') from cls_kegg_barplot.collect()
 
 
     output:

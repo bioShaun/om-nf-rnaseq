@@ -123,7 +123,34 @@
                         </li>
                         {% if protein_coding_diff_genes_heatmap %}
                         <li>
-                            <a href="#heatmap">差异性基因聚类</a>
+                            <a href="#heatmap">差异性基因聚类热图</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </li>
+                {% endif %}
+                {% if go_barplot %}
+                <li>
+                    <a href="#enrichMenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">差异基因富集分析</a>
+                    <ul class="collapse list-unstyled" id="enrichMenu">
+                        <li>
+                            <a href="#go_enrich">GO 富集分析</a>
+                        </li>
+                        {% if kegg_barplot %}
+                        <li>
+                            <a href="#kegg_enrich">KEGG 富集分析</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </li>
+                {% endif %}
+                {% if cluster_plot %}
+                <li>
+                    <a href="#lncFuncMenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">lncRNA 功能分析</a>
+                    <ul class="collapse list-unstyled" id="lncFuncMenu">
+                        {% if cluster_plot %}
+                        <li>
+                            <a href="#lnc_cluster">lncRNA 表达聚类分析</a>
                         </li>
                         {% endif %}
                     </ul>
@@ -176,6 +203,14 @@
 
                 {% if pcg_volcano %}
                     {% include "modules/diff.html" %}
+                {% endif %}
+
+                {% if go_barplot %}
+                    {% include "modules/enrich.html" %}
+                {% endif %}
+
+                {% if cluster_plot %}
+                    {% include "modules/lnc_function.html" %}
                 {% endif %}
 
                 {% if cite %}
