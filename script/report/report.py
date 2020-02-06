@@ -53,9 +53,19 @@ def format_star_df(star_df):
     return clean_df
 
 
+def format_lnc_cis_df(df):
+    df = df[:9]
+    df = df.round({'PCC': 3})
+    df.loc[:, 'PCC_Pvalue'] = [f'{each:.2E}' for each in df.PCC_Pvalue]
+    df.loc[:, 'gene_description'] = [each.split(
+        '||')[0] for each in df.gene_description]
+    return df
+
+
 TABLE_CLEANER = {
     'data_summary': format_reads_df,
     'mapping_summary': format_star_df,
+    'best_lncRNA_neighbour_correlation': format_lnc_cis_df,
 }
 
 
@@ -203,6 +213,8 @@ def rnaseq_report(result_dir, proj_name='test', report_dir=None):
     report_html = report_dir / 'index.html'
     with open(report_html, 'w', encoding="utf-8") as out_inf:
         out_inf.write(display_html)
+    module_tmp_dir = report_dir / 'modules'
+    dir_util.remove_tree(module_tmp_dir)
 
 
 if __name__ == "__main__":

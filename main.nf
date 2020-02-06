@@ -636,7 +636,7 @@ process lncRNA_predict {
     file "lncRNA_feature*.{pdf,png}" into lnc_feature_plt
     file "lncRNA.gtf" into lncRNA_gtf
     file "TUCP.gtf" into tucp_gtf
-    file "Gene_feature.csv" into gene_feature, gf_diff
+    file "Gene_feature.csv" into gene_feature, gf_diff, gf_cis
     file "*fa" into lnc_tucp_fasta
 
     when:
@@ -757,7 +757,7 @@ process load_kallisto_results {
     file gene_feature from gene_feature
 
     output:
-    file 'expression_summary' into expression_summary
+    file 'expression_summary' into expression_summary, exp_summary_cor, exp_summary_report
     file 'deg_input.RData' into deg_obj
     file "expression_summary/*correlation_heatmap.png" into cor_plot
     file "expression_summary/*PCA_plot.png" into pca_plot
@@ -1014,6 +1014,40 @@ process kegg_analysis {
 * lncRNA function
 */
 
+process lnc_cis {
+    
+    publishDir "${params.outdir}/${params.proj_name}/result/lncRNA_function/", mode: 'copy'
+
+    input:
+    file lnc_gtf from lncRNA_gtf
+    file split_gtf_dir from split_gtf_dir
+    file exp_summary from exp_summary_cor
+    file sample_group from sample_group
+    file gene_feature from gf_cis
+
+    output:
+    file "lncRNA_neighbour_correlation.csv" into fee_raw
+    file "best_lncRNA_neighbour_correlation.csv" into fee_best
+    
+    when:
+    params.pipeline
+
+    script:
+    """
+    /public/software/FEELnc/scripts/FEELnc_classifier.pl \\
+        -i ${lnc_gtf} \\
+        -a ${split_gtf_dir}/protein_coding.gtf \\
+        -w 100000 > lncRNA_neighbour.txt
+
+    python ${script_dir}/lncrna/neighbour_lnc_pcg_cor.py \\
+        ${exp_summary}/Gene.tpm.txt \\
+        lncRNA_neighbour.txt \\
+        ${sample_group} ${gene_feature} 
+
+    """
+}
+
+
 cluster_gene_list
     .flatMap()
     .into { cluster_gene_file; cluster_kegg_gene }
@@ -1147,7 +1181,7 @@ process pipe_report {
     file ('assembly_tmap/*') from assembly_tmap.collect()
     file ('lnc_number/*') from lnc_num_plt
     file ('lnc_feature/*') from lnc_feature_plt
-    file expression_summary from expression_summary
+    file expression_summary from exp_summary_report
     file ('pca_plot/*') from pca_plot.collect()
     file ('cor_plot/*') from cor_plot.collect()
     file ('pcg_volcano/*') from pcg_diff_plt.collect()
@@ -1155,6 +1189,7 @@ process pipe_report {
     file ('heatmap/*') from diff_heatmap
     file ('go_barplot/*') from go_barplot.collect()
     file ('kegg_barplot/*') from kegg_barplot.collect()
+    file fee_best from fee_best
     file cluster_plot from cluster_plot
     file ('lnc_cluster_go/*') from cls_go_barplot.collect()
     file ('lnc_cluster_kegg/*') from cls_kegg_barplot.collect()

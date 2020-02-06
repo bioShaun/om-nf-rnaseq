@@ -33,7 +33,7 @@
             </div>
 
             <ul class="list-unstyled components">
-                <a href="#"><p>转录组分析报告</p></a>
+                <a href="#"><p>LncRNA 分析报告</p></a>
                 {% if data_info %}
                 <li>
                     <a href="#dataInfMenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">数据质控</a>
@@ -144,10 +144,13 @@
                     </ul>
                 </li>
                 {% endif %}
-                {% if cluster_plot %}
+                {% if best_lncRNA_neighbour_correlation_header %}
                 <li>
                     <a href="#lncFuncMenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">lncRNA 功能分析</a>
                     <ul class="collapse list-unstyled" id="lncFuncMenu">
+                        <li>
+                            <a href="#lnc_cis">lncRNA 邻近蛋白编码基因</a>
+                        </li>
                         {% if cluster_plot %}
                         <li>
                             <a href="#lnc_cluster">lncRNA 表达聚类分析</a>
@@ -209,7 +212,7 @@
                     {% include "modules/enrich.html" %}
                 {% endif %}
 
-                {% if cluster_plot %}
+                {% if best_lncRNA_neighbour_correlation_header %}
                     {% include "modules/lnc_function.html" %}
                 {% endif %}
 

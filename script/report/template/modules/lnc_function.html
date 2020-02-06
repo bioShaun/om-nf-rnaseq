@@ -10,6 +10,36 @@
 
 
     </div>
+    <div id="lnc_cis" class="block">
+        <h4>lncRNA 邻近蛋白编码基因</h4>
+        <div class="description">
+            <p>
+                目前的研究发现很多 lncRNA 参与邻近蛋白编码基因的表达调控。我们使用 <a href="https://github.com/tderrien/FEELnc" target="_blank"> <b>FEELnc</b> </a><a href="#citation-{{lnc_function_cite}}"><sup>{{lnc_function_cite}}</sup></a> (Wucher, Valentin, et al. 2017) 软件搜索 lncRNA 上下游 100kb 所以蛋白编码基因并计算它们的表达相关性。下表展示了部分 lncRNA 与其最邻近的蛋白编码基因。
+            </p>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="thead-dark">
+                    <tr>
+                        {% for cell in best_lncRNA_neighbour_correlation_header %}
+                        <th class="align-middle">{{cell}}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in best_lncRNA_neighbour_correlation_body %}
+                    <tr>
+                        {% for cell in row %}
+                        <td class="align-middle">{{cell}}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>                   
+        </div>
+
+    </div>
 
     {% if cluster_plot %}
     <div id="lnc_cluster" class="block">

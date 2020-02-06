@@ -95,11 +95,16 @@ process:
         kegg_barplot:
           - kobas
   lnc_function:
-      label: cluster_plot
+      label: best_lncRNA_neighbour_correlation.csv
+      table:
+        - best_lncRNA_neighbour_correlation.csv      
       plot:
         - cluster_plot
         - lnc_cluster_go
         - lnc_cluster_kegg
+      cite:
+        mapping_summary_header:
+          - star
   star_alignment:
       label: mapping_summary.csv
       table:
