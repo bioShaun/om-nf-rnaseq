@@ -14,7 +14,7 @@
         <h4>lncRNA 邻近蛋白编码基因</h4>
         <div class="description">
             <p>
-                目前的研究发现很多 lncRNA 参与邻近蛋白编码基因的表达调控。我们使用 <a href="https://github.com/tderrien/FEELnc" target="_blank"> <b>FEELnc</b> </a><a href="#citation-{{lnc_function_cite}}"><sup>{{lnc_function_cite}}</sup></a> (Wucher, Valentin, et al. 2017) 软件搜索 lncRNA 上下游 100kb 所以蛋白编码基因并计算它们的表达相关性。下表展示了部分 lncRNA 与其最邻近的蛋白编码基因。
+                目前的研究发现很多 lncRNA 参与邻近蛋白编码基因的表达调控。我们使用 <a href="https://github.com/tderrien/FEELnc" target="_blank"> <b>FEELnc</b> </a><a href="#citation-{{lnc_function_cite}}"><sup>{{lnc_function_cite}}</sup></a> (Wucher, Valentin, et al. 2017) 软件搜索 lncRNA 上下游 100kb 所以蛋白编码基因并计算它们的表达相关性。下表展示了部分 lncRNA 与其邻近的蛋白编码基因距离以及皮尔逊相关系数。
             </p>
         </div>
 
@@ -38,6 +38,24 @@
                 </tbody>
             </table>                   
         </div>
+
+        {% if lncRNA_PCG_neighbour_distribution %}
+        <h4>lncRNA 临近蛋白编码基因分布</h4>
+        <div class="description">
+            <p>
+                我们通过滑动窗口，统计了每 1Mb 区域内 lncRNA 和临近蛋白编码基因的组合数目，并统计了它们皮尔逊相关性系数的均值。如下图所示。
+            </p>
+        </div>    
+
+        <div class="plot">
+            <a class="lnc-nb-dis-link" 
+                href="{{lncRNA_PCG_neighbour_distribution}}" data-lightbox="lnc-nb-dis">
+                <img class="lnc-nb-dis" style="width: 600px;" 
+                src="{{lncRNA_PCG_neighbour_distribution}}" />
+            </a>
+        </div>
+
+        {% endif %}
 
     </div>
 

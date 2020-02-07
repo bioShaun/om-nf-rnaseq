@@ -92,7 +92,12 @@ om_lnc_volcano_plot <- function(dpa_results, compare_name,
   plot_height <- 6 
   plot_width <- 8 
   if (! is.null(outdir)) {
-    out_prefix <- file.path(outdir, paste(gt, compare_name, 'Volcano_plot', sep = '.'))
+    if (gt == "ALL") {
+       plt_name <- paste(compare_name, 'Volcano_plot', sep = '_')
+    } else {
+       plt_name <- paste(gt, compare_name, 'Volcano_plot', sep = '_')
+    }
+    out_prefix <- file.path(outdir, plt_name)
     save_ggplot(p, out_prefix, width = plot_width, height = plot_height)
   }
   return(p)

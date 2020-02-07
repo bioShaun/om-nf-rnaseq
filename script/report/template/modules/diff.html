@@ -80,4 +80,52 @@
     </div>
     {% endif %}
 
+    {% if pcg_diff_dis %}
+    <div id="diff_loc" class="block">
+        <h4>差异性基因在染色体上分布</h4>
+        <div class="description">
+            <p>
+                以下左右分别展示了各个比较组中蛋白编码基因和 lncRNA 在不同染色体上的分布。我们使用滑动窗口的方法，统计了每 1Mb 中上调和下调基因的数目。
+            </p>
+        </div>
+
+        <div class="w clearfix">
+            <div class="plot-small-slider fl">
+                <div class="fotorama" 
+                    data-width="400" 
+                    data-ratio="4/3" 
+                    data-max-width="100%"
+                    data-allowfullscreen="true"
+                    data-nav="thumbs"
+                    data-transition="crossfade"
+                    data-loop="true"
+                >
+                {% for plot in pcg_diff_dis %}
+                    <img src="{{plot}}">
+                {% endfor %}
+                </div>
+            </div>
+
+            {% if lnc_diff_dis %}
+            <div class="plot-small-slider fl">
+                <div class="fotorama" 
+                    data-width="400" 
+                    data-ratio="4/3" 
+                    data-max-width="100%"
+                    data-allowfullscreen="true"
+                    data-nav="thumbs"
+                    data-transition="crossfade"
+                    data-loop="true"
+                >
+                {% for plot in lnc_diff_dis %}
+                    <img src="{{plot}}">
+                {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+    {% endif %}
+
 </section>

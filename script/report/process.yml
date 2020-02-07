@@ -81,6 +81,8 @@ process:
         - lnc_volcano
         - heatmap/protein_coding_diff_genes_heatmap.png
         - heatmap/lncRNA_diff_genes_heatmap.png
+        - pcg_diff_dis
+        - lnc_diff_dis
       cite:
         pcg_volcano:
           - edgeR
@@ -97,8 +99,9 @@ process:
   lnc_function:
       label: best_lncRNA_neighbour_correlation.csv
       table:
-        - best_lncRNA_neighbour_correlation.csv      
+        - best_lncRNA_neighbour_correlation.csv
       plot:
+        - lnc_nb_plot/lncRNA_PCG_neighbour_distribution.png
         - cluster_plot
         - lnc_cluster_go
         - lnc_cluster_kegg

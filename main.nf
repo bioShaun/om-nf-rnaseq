@@ -87,7 +87,10 @@ params.sample_group = false
 params.rm_rrna = false
 params.rrna_index = false
 params.gene_ann = false
+params.chr_size = false
+params.chr_window = false
 params.min_cluster_grp = 3
+
 
 // pipeline control parameters
 params.pipeline = false
@@ -572,7 +575,8 @@ process stringtie_merge {
     output:
     file "novel.raw.gtf" into novel_gtf, novel_anno_gtf
     file "novel.fa" into novel_fasta
-    file "assembly.gtf" into kallisto_idx_gtf, quant_gtf, rmats_gtf
+    file "analysis.gtf" into kallisto_idx_gtf, quant_gtf, rmats_gtf
+    file "assembly.gtf"
     file "gene_trans.map" into gene2tr_quant, gene2tr_anno
     file "assembly_summary.p*" into assembly_unannotated_fig
 
@@ -609,10 +613,11 @@ process stringtie_merge {
         -g ${fasta} \\
         -w novel.fa    
 
+    cat novel.raw.gtf ${gtf} > analysis.gtf
+
     python ${script_dir}/assembly/get_gene_to_trans.py \\
-        --gff assembly.gtf \\
-        --out_dir . \\
-        --ref
+        --gff analysis.gtf \\
+        --out_dir . 
     """
 }
 
@@ -682,19 +687,13 @@ process lncRNA_predict {
 process mk_kallisto_index {
     tag "KALLISTO index"
 
-    publishDir "${params.outdir}/${params.proj_name}", mode: 'copy',
-        saveAs: {filename ->
-            if (filename == "assembly.fa.kallisto_idx") "data/ref/$filename"
-            else null
-        }
-
     input:
     file gtf from kallisto_idx_gtf
     file fasta from genome
     
     output:
-    file "assembly.fa" into merged_fa
-    file "assembly.fa.kallisto_idx" into kallisto_idx
+    file "transcript.fa" into merged_fa
+    file "transcript.fa.kallisto_idx" into kallisto_idx
     
     when:
     params.pipeline
@@ -703,11 +702,11 @@ process mk_kallisto_index {
     """
     gffread ${gtf} \\
         -g ${fasta} \\
-        -w assembly.fa
+        -w transcript.fa
 
     kallisto index \\
-        -i assembly.fa.kallisto_idx \\
-        assembly.fa
+        -i transcript.fa.kallisto_idx \\
+        transcript.fa
     """
 }
 
@@ -815,6 +814,7 @@ process diff_analysis {
     publishDir "${params.outdir}/${params.proj_name}/result/quantification/differential_analysis/", mode: 'copy',
         saveAs: {filename -> 
             if (filename.indexOf("png") > 0) null
+            else if (filename.indexOf("txt") > 0) null
             else "${filename}"
         }
         
@@ -826,8 +826,9 @@ process diff_analysis {
     
     output:
     file compare into diff_out_go, diff_out_kegg, diff_out_all, diff_tf, diff_out_ppi, diff_out_enrich_plot, pathway_compare, diff_summary
-    file "${compare}/protein_coding.${compare}.Volcano_plot.png" into pcg_diff_plt
-    file "${compare}/lncRNA.${compare}.Volcano_plot.png" into lnc_diff_plt
+    file "${compare}/protein_coding_${compare}_Volcano_plot.png" into pcg_diff_plt
+    file "${compare}/lncRNA_${compare}_Volcano_plot.png" into lnc_diff_plt
+    file "${compare}/${compare}.edgeR.DE_results.txt" into diff_table
     
     when:
     params.pipeline
@@ -846,6 +847,57 @@ process diff_analysis {
         --gene_ann ${gf_diff}
     """
 }
+
+if (params.chr_size && params.chr_window) {
+    /*
+    * diff gene distribution
+    */
+    chr_size = check_ref_exist(params.chr_size, 'chr size file')
+    chr_window = check_ref_exist(params.chr_window, 'chr window file')
+
+    process diff_gene_loc {
+
+        tag "${compare}"
+
+        publishDir "${params.outdir}/${params.proj_name}/result/quantification/differential_analysis/${compare}", mode: 'copy'
+        
+        input:
+        file diff_table from diff_table
+        file chr_size from chr_size
+        file chr_window from chr_window
+        
+        output:
+        file "protein_coding_${compare}_diff_gene_location.*" into pcg_diff_loc
+        file "lncRNA_${compare}_diff_gene_location.*" into lnc_diff_loc
+        file "${compare}_diff_gene_location.*" into all_diff_loc
+            
+        when:
+        params.pipeline
+
+        script:
+        compare = diff_table.baseName - '.edgeR.DE_results'
+        """
+        /public/python_env/work_py3/bin/python \\
+            ${script_dir}/quant/diff_distribute.py \\
+                --diff-file ${diff_table} \\
+                --chr-window ${chr_window} \\
+                --chr-size ${chr_size} \\
+                --pval ${params.exp_diff_pval} \\
+                --logfc ${params.exp_lgfc} \\
+                --lnc
+
+        /public/python_env/work_py3/bin/python \\
+            ${script_dir}/quant/diff_distribute.py \\
+                --diff-file ${diff_table} \\
+                --chr-window ${chr_window} \\
+                --chr-size ${chr_size} \\
+                --pval ${params.exp_diff_pval} \\
+                --logfc ${params.exp_lgfc} 
+        """
+    }
+
+}
+
 
 /*
 * diff summary
@@ -1048,6 +1100,37 @@ process lnc_cis {
 }
 
 
+if (params.chr_size && params.chr_window) {
+
+    process lnc_nb_loc {
+
+        publishDir "${params.outdir}/${params.proj_name}/result/lncRNA_function/", mode: 'copy'
+        
+        input:
+        file fee_raw from fee_raw
+        file chr_size from chr_size
+        file chr_window from chr_window
+        
+        output:
+        file "lncRNA_PCG_neighbour_distribution.*" into lnc_nb_loc
+            
+        when:
+        params.pipeline
+
+        script:
+        """
+        /public/python_env/work_py3/bin/python \\
+            ${script_dir}/lncrna/lnc_nb_distribute.py \\
+                --lnc-nb ${fee_raw} \\
+                --chr-size ${chr_size} \\
+                --chr-window ${chr_window}
+        """
+    }
+
+}
+
+
+
 cluster_gene_list
     .flatMap()
     .into { cluster_gene_file; cluster_kegg_gene }
@@ -1186,6 +1269,8 @@ process pipe_report {
     file ('cor_plot/*') from cor_plot.collect()
     file ('pcg_volcano/*') from pcg_diff_plt.collect()
     file ('lnc_volcano/*') from lnc_diff_plt.collect()
+    file ('pcg_diff_dis/*') from pcg_diff_loc.collect()
+    file ('lnc_diff_dis/*') from lnc_diff_loc.collect()
     file ('heatmap/*') from diff_heatmap
     file ('go_barplot/*') from go_barplot.collect()
     file ('kegg_barplot/*') from kegg_barplot.collect()
@@ -1193,6 +1278,7 @@ process pipe_report {
     file cluster_plot from cluster_plot
     file ('lnc_cluster_go/*') from cls_go_barplot.collect()
     file ('lnc_cluster_kegg/*') from cls_kegg_barplot.collect()
+    file ('lnc_nb_plot/*') from lnc_nb_loc
 
 
     output:
