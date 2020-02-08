@@ -10,16 +10,6 @@ def helpMessage() {
     Usage:
 
     ==================================================================
-
-    References
-      --genome                      Path to reference genome fa
-      --gtf                         Path to reference gtf file
-      --split_gtf_dir               Path to gtf directory split by gene_type
-      --bed12                       Path to reference bed file
-      --ref_flat                    Path to reference ref flat
-      --star_index                  Path to reference star index
-      --rrna_index                  Path to rRNA bowtie2 index
-      --gene_ann                    Path to gene annotation
     
     Mandatory arguments:
       --proj_name                   Project name for output name
@@ -31,6 +21,7 @@ def helpMessage() {
       --rm_rrna                     Remove rRNA sequence in reads
       --qc                          Run qc analysis
       --pipeline                    Run whole rnaseq pipeline
+      --kegg_abbr                   kegg abbr for kegg analysis
 
     """.stripIndent()
 }
@@ -57,45 +48,21 @@ def check_ref_exist = {file_path, file_type ->
     }
 }
 
-/*
- * SET UP CONFIGURATION VARIABLES
-*/
-
-// parameters
-params.proj_name = 'test_project'
-params.pathway_db = '/public/database/kegg_html/'
-params.outdir = false
-params.reads = false
+// annotations
 params.star_index = false
 params.gtf = false
 params.split_gtf_dir = false
 params.ref_flat = false
 params.bed12 = false
 params.genome = false
-params.strand = 'unstranded'
-params.contrast = false
-params.diff_pval = 0.05
-params.diff_lgfc = 1
 params.go_anno = false
-params.skip_kegg = false
 params.kegg_anno = false
 params.kegg_pathway = false
 params.gene_length = false
-params.kegg_abbr = false
-params.kegg_backgroud = false
-params.sample_group = false
-params.rm_rrna = false
 params.rrna_index = false
 params.gene_ann = false
 params.chr_size = false
-params.chr_window = false
-params.min_cluster_grp = 3
-
-
-// pipeline control parameters
-params.pipeline = false
-params.qc = false
-params.quant = false
+params.chr_window = false  
 
 if (!params.kegg_backgroud) {
     kegg_backgroud = params.kegg_abbr
@@ -402,7 +369,6 @@ process star_sortOutput {
 /*
 * picard qc
 */
-
 process picard_qc {
     tag "${name}"
 
@@ -469,7 +435,6 @@ process picard_IS {
 /*
 * qc report
 */
-
 process qc_report {
 
     publishDir "${params.outdir}/${params.proj_name}/result/", mode: 'copy',
@@ -523,7 +488,6 @@ process qc_report {
 /*
 * Transcriptome Assembly
 */
-
 process assembly {
 
     tag "${name}"
@@ -654,18 +618,18 @@ process lncRNA_predict {
         /public/software/CPC2/CPC2-beta/bin/CPC2.py \\
             -i ${novel_fasta}
 
-    /public/python_env/work_py3/bin/python ${script_dir}/lncrna/cpc2lnc.py \\
+    python ${script_dir}/lncrna/cpc2lnc.py \\
         --cpc cpc2output.txt --gtf ${novel_gtf} \\
         --split_gtf_dir ${split_gtf_dir} \\
         --outfile novel.gtf
     
-    /public/python_env/work_py3/bin/python ${script_dir}/lncrna/lnc_feature.py \\
+    python ${script_dir}/lncrna/lnc_feature.py \\
         --novel-lnc novel.gtf \\
         --gtf-split-dir ${split_gtf_dir} \\
         --outdir . \\
         --gene_ann ${gene_ann}
 
-    /public/python_env/work_py3/bin/python ${script_dir}/lncrna/split_gtf_by_type.py \\
+    python ${script_dir}/lncrna/split_gtf_by_type.py \\
         --gtf novel.gtf \\
         --outdir . --novel
 
@@ -877,8 +841,7 @@ if (params.chr_size && params.chr_window) {
         script:
         compare = diff_table.baseName - '.edgeR.DE_results'
         """
-        /public/python_env/work_py3/bin/python \\
-            ${script_dir}/quant/diff_distribute.py \\
+        python ${script_dir}/quant/diff_distribute.py \\
                 --diff-file ${diff_table} \\
                 --chr-window ${chr_window} \\
                 --chr-size ${chr_size} \\
@@ -886,8 +849,7 @@ if (params.chr_size && params.chr_window) {
                 --logfc ${params.exp_lgfc} \\
                 --lnc
 
-        /public/python_env/work_py3/bin/python \\
-            ${script_dir}/quant/diff_distribute.py \\
+        python ${script_dir}/quant/diff_distribute.py \\
                 --diff-file ${diff_table} \\
                 --chr-window ${chr_window} \\
                 --chr-size ${chr_size} \\
@@ -938,7 +900,6 @@ process diff_exp_summary {
         --grp_num ${params.min_cluster_grp}
     """
 }
-
 
 
 /*
@@ -1025,7 +986,7 @@ process kegg_analysis {
     file "${compare}/${compare}_${reg}_kegg_enrichment_barplot*" into kegg_barplot
 
     when:
-    params.pipeline    
+    params.pipeline && params.kegg_abbr
     
     script:
     (compare, reg) = compare_reg.split(';')
@@ -1119,8 +1080,7 @@ if (params.chr_size && params.chr_window) {
 
         script:
         """
-        /public/python_env/work_py3/bin/python \\
-            ${script_dir}/lncrna/lnc_nb_distribute.py \\
+        python ${script_dir}/lncrna/lnc_nb_distribute.py \\
                 --lnc-nb ${fee_raw} \\
                 --chr-size ${chr_size} \\
                 --chr-window ${chr_window}
