@@ -192,7 +192,8 @@ class ReportGenerator:
         return self._report_dict
 
 
-def rnaseq_report(result_dir, proj_name='test', report_dir=None):
+def rnaseq_report(result_dir, proj_name='test',
+                  report_dir=None, report_title="LncRNA 分析报告"):
     result_dir = Path(result_dir)
     if report_dir is None:
         report_dir = result_dir / 'report'
@@ -205,6 +206,7 @@ def rnaseq_report(result_dir, proj_name='test', report_dir=None):
 
     display_dictionary = {}
     display_dictionary['project_name'] = proj_name
+    display_dictionary['report_title'] = report_title
 
     report_content = ReportGenerator(result_dir, report_dir)
     display_dictionary.update(report_content.report)

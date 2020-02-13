@@ -5,6 +5,7 @@ process_order:
   - lncrna_predict
   - quant
   - diff
+  - mrna_diff
   - enrich
   - lnc_function
 
@@ -71,6 +72,8 @@ process:
         - expression_summary/gene_expression_boxplot.png
         - pca_plot
         - cor_plot
+        - Sample_correlation_heatmap.png
+        - PCA_plot.png
       cite:
         gene_expression_boxplot:
           - kallisto
@@ -85,6 +88,16 @@ process:
         - lnc_diff_dis
       cite:
         pcg_volcano:
+          - edgeR
+  mrna_diff:
+      label: volcano
+      plot:
+        - volcano
+        - heatmap/Diff_genes_heatmap.png
+        - diff_loc
+        - cluster_plot
+      cite:
+        volcano:
           - edgeR
   enrich:
       label: go_barplot

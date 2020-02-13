@@ -15,6 +15,10 @@ def novel_gtf(compare_gtf, outfile, stranded=False):
     novel_gtf_dict = dict()
     outfile_inf = open(outfile, 'w')
     for record in GFF_Reader(compare_gtf):
+        # for stranded rnaseq, remove strandness transcripts
+        if stranded:
+            if record.iv.strand == '.':
+                continue
         if 'class_code' in record.attr:
             if record.attr['class_code'] in novel_tr_code:
                 novel_gtf_dict[record.attr['transcript_id']] = 1

@@ -20,6 +20,38 @@
 
     </div>
 
+    {% if Sample_correlation_heatmap %}
+    <div id="pca_correlation" class="block">
+        <h4>样品相关性分析</h4>
+        <div class="description">
+            <p>
+                我们对样品基因的表达量进行两两相关性分析，并绘制了相关性热图。另外，我们还通过 PCA 分析，反映各样品之间的总体的相似和差异。
+            </p>
+        </div>
+
+        <div class="w clearfix">
+            {% if Sample_correlation_heatmap %}
+            <div class="plot-small fl" style="padding-top:0px;">
+                <a class="cor-plt-link" 
+                href="{{Sample_correlation_heatmap}}" data-lightbox="cor-plt">
+                <img class="cor-plt" src="{{Sample_correlation_heatmap}}" />
+                </a>
+            </div>
+            {% endif %}
+
+            {% if PCA_plot %}
+            <div class="plot-small fl">
+                <a class="pca-plt-link" 
+                href="{{PCA_plot}}" data-lightbox="pca-plt">
+                <img class="pca-plt" src="{{PCA_plot}}" />
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+    {% endif %}
+
     {% if pca_plot %}
     <div id="pca_correlation" class="block">
         <h4>样品相关性分析</h4>
@@ -67,5 +99,6 @@
         </div>
     </div>
     {% endif %}
+
 
 </section>

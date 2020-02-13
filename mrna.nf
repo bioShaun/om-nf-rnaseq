@@ -16,6 +16,7 @@ def helpMessage() {
       --reads                       Path to input data (must be surrounded with quotes)
       --sample_group                Sample vs Group file, tab seperated
       --outdir                      Path to analysis results 
+      --db_name
 
     Optional:
       --rm_rrna                     Remove rRNA sequence in reads
@@ -49,20 +50,20 @@ def check_ref_exist = {file_path, file_type ->
 }
 
 // annotations
-params.star_index = false
-params.gtf = false
-params.split_gtf_dir = false
-params.ref_flat = false
-params.bed12 = false
-params.genome = false
-params.go_anno = false
-params.kegg_anno = false
-params.kegg_pathway = false
-params.gene_length = false
-params.rrna_index = false
-params.gene_ann = false
-params.chr_size = false
-params.chr_window = false  
+params.genome = "${params.genomes_base}/${params.db_name}/${params.fasta_name}"
+params.genome_fai = "${params.genomes_base}/${params.db_name}/${params.fasta_name}.fai"
+params.gtf = "${params.genomes_base}/${params.db_name}/${params.gtf_name}"
+params.gene_length = "${params.genomes_base}/${params.db_name}/${params.gene_len_name}"
+params.split_gtf_dir = "${params.genomes_base}/${params.db_name}/${params.split_gtf_name}"
+params.ref_flat = "${params.genomes_base}/${params.db_name}/${params.ref_flat_name}"
+params.bed12 = "${params.genomes_base}/${params.db_name}/${params.bed12_name}"
+params.chr_size = "${params.genomes_base}/${params.db_name}/${params.chr_size_name}"
+params.chr_window = "${params.genomes_base}/${params.db_name}/${params.chr_window_name}.${params.window_size}.bed"  
+params.star_index = "${params.genomes_base}/${params.db_name}/${params.star_index_name}"
+params.kegg_anno = "${params.genomes_base}/${params.db_name}/${params.kegg_abbr}.${params.kegg_anno_name}"
+params.go_anno = "${params.genomes_base}/${params.db_name}/${params.go_name}"
+params.gene_ann = "${params.genomes_base}/${params.db_name}/${params.gene_des_name}"
+
 
 if (!params.kegg_backgroud) {
     kegg_backgroud = params.kegg_abbr
@@ -79,6 +80,7 @@ if (params.pipeline) {
 
 // check ref
 genome = check_ref_exist(params.genome, 'genome fasta')
+genome_fai = check_ref_exist(params.genome_fai, 'genome fasta index')
 gtf = check_ref_exist(params.gtf, 'gtf file')
 bed12 = check_ref_exist(params.bed12, 'bed file')
 ref_flat = check_ref_exist(params.ref_flat, 'ref flat file')
@@ -88,6 +90,7 @@ gene_ann = check_ref_exist(params.gene_ann, 'Gene annotation')
 go_anno = check_ref_exist(params.go_anno, 'GO')
 gene_length = check_ref_exist(params.gene_length, 'Gene Length')
 kegg_anno = check_ref_exist(params.kegg_anno, 'KEGG')
+
 
 // Prepare analysis fastq files
 Channel
@@ -172,7 +175,7 @@ process fastp {
     set name, file(reads) from raw_fq_files
 
     output:
-    file "*.fq.gz" into trimmed_reads
+    file "*.fq.gz" into clean_reads, quant_reads
     file "${name}.json" into fastp_json_analysis, fastp_json_report
     file "${name}.html" into fastp_html
 
@@ -181,66 +184,12 @@ process fastp {
     fastp \\
         --in1 ${reads[0]} \\
         --in2 ${reads[1]} \\
-        --out1 ${name}.R1.trimmed.fq.gz \\
-        --out2 ${name}.R2.trimmed.fq.gz \\
+        --out1 ${name}.R1.clean.fq.gz \\
+        --out2 ${name}.R2.clean.fq.gz \\
         --json ${name}.json \\
         --html ${name}.html    
     """
 }  
-
-
-/*
-* rm rRNA
-*/
-process rm_rRNA {
-
-    tag "${name}"
-
-    publishDir "${params.outdir}/${params.proj_name}/data/cleandata/", mode: 'copy',
-        saveAs: {filename -> 
-            if (filename.indexOf("fq.gz") > 0)  "${filename}"
-            else if (filename.indexOf("rrna.log") > 0) "../../logs/rm_rRNA/${filename}"
-            else null 
-            }    
-
-    cpus = 16
-
-    input:
-    file reads from trimmed_reads
-    file index from rrna_idx.collect()
-
-    output:
-    file "*.fq.gz" into clean_reads, quant_reads
-    file "${name}.rrna.log" into rrna_rm_log
-
-
-    script:
-    name = reads[0].toString() - '.R1.trimmed.fq.gz'
-    strand_sp = params.bowtie2_lib[params.strand]
-
-    if (params.rm_rrna)
-        """
-        bowtie2 --reorder --very-sensitive-local ${strand_sp} \\
-            -x ${rrna_idx_base} \\
-            -1 ${reads[0]} \\
-            -2 ${reads[1]} \\
-            -p ${task.cpus} \\
-            --un-conc-gz ${name}.R%.clean.fq.gz \\
-            --no-unal \\
-            --no-head \\
-            --no-sq \\
-            -S ${name}.sam \\
-            > ${name}.rrna.log 2>&1
-        """
-    else
-        """
-        ln -s ${reads[0]} ${name}.R1.clean.fq.gz
-        ln -s ${reads[1]} ${name}.R2.clean.fq.gz
-
-        touch ${name}.rrna.log 2>&1
-        """
-
-}
 
 
 /*
@@ -252,7 +201,6 @@ process reads_qc_summary {
 
     input:
     file 'fastp_json/*' from fastp_json_analysis.collect()
-    file 'rrna/*' from rrna_rm_log.collect()
     
     output:
     file "data_summary.csv" into data_summary, data_summary_qc
@@ -264,7 +212,6 @@ process reads_qc_summary {
     """
     python ${script_dir}/reads_qc/extract_fastp_info.py \\
         --fastp-dir fastp_json \\
-        --rrna_dir rrna \\
         --outdir .
 
     /public/software/R/R-3.5.1/executable/bin/Rscript ${script_dir}/reads_qc/gc_plot.R \\
@@ -303,7 +250,7 @@ process star_mapping {
 
     script:
     sample_name = reads[0].toString() - '.R1.clean.fq.gz'
-    if (params.strand == 'unstranded') {
+    if (params.mrna_strand == 'unstranded') {
         strand_field = "--outSAMstrandField intronMotif"
     } else {
         strand_field = ""
@@ -359,10 +306,11 @@ process star_sortOutput {
     name = bam.baseName
 
     """
-    picard FixMateInformation \\
+    picard ${params.markdup_java_options} FixMateInformation \\
         I=${bam} \\
         O=${name}.sorted.bam \\
-        SORT_ORDER=coordinate CREATE_INDEX=true
+        SORT_ORDER=coordinate CREATE_INDEX=true \\
+        TMP_DIR=./tmp
     """
 }
 
@@ -388,7 +336,7 @@ process picard_qc {
 
     script:
     name = bam.baseName - '.sorted'
-    strand_sp = params.picard_lib[params.strand]
+    strand_sp = params.picard_lib[params.mrna_strand]
     """
     picard ${params.markdup_java_options} CollectRnaSeqMetrics \\
         I=${bam} \\
@@ -423,7 +371,7 @@ process picard_IS {
     script:
     name = bam.baseName - '.sorted'
     """
-    picard CollectInsertSizeMetrics \\
+    picard ${params.markdup_java_options} CollectInsertSizeMetrics \\
         I=${bam} \\
         O=${name}.insert_size_metrics.txt \\
         H=${name}.insert_size_histogram.pdf
@@ -479,7 +427,7 @@ process qc_report {
     python ${script_dir}/rnaseq_qc/rnaseq_matrix_summary.py \\
         -d ./insert_size -o ./ -m is
 
-    python ${script_dir}/report/report.py .
+    python ${script_dir}/report/report.py . --report_title "QC report"
 
     """
     
@@ -507,7 +455,7 @@ process assembly {
 
     script:
     name = bam.baseName - '.sorted'
-    st_direction = params.stringtie_lib[params.strand]
+    st_direction = params.stringtie_lib[params.mrna_strand]
     """
     /public/software/stringtie/stringtie-2.0.6.Linux_x86_64/stringtie \\
         -G ${gtf} ${st_direction} \\
@@ -525,9 +473,10 @@ process assembly {
 */
 process stringtie_merge {
 
-    publishDir "${params.outdir}/${params.proj_name}", mode: 'copy',
+    publishDir "${params.outdir}/${params.proj_name}/result/assembly/", mode: 'copy',
             saveAs: {filename ->
-                if (filename == "assembly.gtf") "result/assembly/$filename"
+                if (filename == "novel.gtf") filename
+                else if (filename == "novel.fa") filename
                 else null
             }
 
@@ -537,18 +486,17 @@ process stringtie_merge {
     file gtf from gtf
     
     output:
-    file "novel.raw.gtf" into novel_gtf, novel_anno_gtf
+    file "novel.gtf" into novel_gtf, novel_anno_gtf
     file "novel.fa" into novel_fasta
     file "analysis.gtf" into kallisto_idx_gtf, quant_gtf, rmats_gtf
-    file "assembly.gtf"
-    file "gene_trans.map" into gene2tr_quant, gene2tr_anno
     file "assembly_summary.p*" into assembly_unannotated_fig
+    file "gene_trans.map" into quant_gene2tr, anno_gene2tr
 
     when:
     params.pipeline
 
     script:
-    stranded_flag = params.stranded_flag[params.strand]
+    stranded_flag = params.stranded_flag[params.mrna_strand]
     """
     ls gtf/* > gtf.list
 
@@ -571,79 +519,90 @@ process stringtie_merge {
 
     python ${script_dir}/assembly/novel_gtf_from_gffcompare.py \\
         --compare-gtf cmp2ref.annotated.gtf ${stranded_flag} \\
-        --outfile novel.raw.gtf
+        --outfile novel.gtf
 
-    gffread novel.raw.gtf \\
+    gffread novel.gtf \\
         -g ${fasta} \\
         -w novel.fa    
 
-    cat novel.raw.gtf ${gtf} > analysis.gtf
+    cat novel.gtf ${gtf} > analysis.gtf
 
     python ${script_dir}/assembly/get_gene_to_trans.py \\
         --gff analysis.gtf \\
-        --out_dir . 
+        --out_dir .
     """
 }
 
 /*
-* lncRNA prediction
-*/ 
+* novel gene annotation
+*/
+process novel_gene_annotation {
 
-process lncRNA_predict {
+    publishDir "${params.outdir}/${params.proj_name}/result/assembly/", mode: 'copy',
+            saveAs: {filename ->
+                if (filename == "novel.gene.annotation.csv") filename
+                else null
+            }
 
-    publishDir "${params.outdir}/${params.proj_name}/result/lncRNA_prediction/" , mode: 'copy'
+    queue 'om'
+
+    cpus = 40
 
     input:
-    file novel_fasta from novel_fasta
-    file novel_gtf from novel_gtf
-    file split_gtf_dir from split_gtf_dir
-    file genome from genome
-    file gene_ann from gene_ann
-
-    output:
-    file "*gene_number.{pdf,png}" into lnc_num_plt
-    file "lncRNA_feature*.{pdf,png}" into lnc_feature_plt
-    file "lncRNA.gtf" into lncRNA_gtf
-    file "TUCP.gtf" into tucp_gtf
-    file "Gene_feature.csv" into gene_feature, gf_diff, gf_cis
-    file "*fa" into lnc_tucp_fasta
-
-    when:
-    params.pipeline
-
-    script:
-
-    """
-    /public/python_env/oms_pub/bin/python \\
-        /public/software/CPC2/CPC2-beta/bin/CPC2.py \\
-            -i ${novel_fasta}
-
-    python ${script_dir}/lncrna/cpc2lnc.py \\
-        --cpc cpc2output.txt --gtf ${novel_gtf} \\
-        --split_gtf_dir ${split_gtf_dir} \\
-        --outfile novel.gtf
+    file novel_fa from novel_fasta
+    file novel_gtf from novel_anno_gtf
+    file gene2tr from anno_gene2tr
+    file gtf from gtf
+    file gene_des from gene_ann
     
-    python ${script_dir}/lncrna/lnc_feature.py \\
-        --novel-lnc novel.gtf \\
-        --gtf-split-dir ${split_gtf_dir} \\
-        --outdir . \\
-        --gene_ann ${gene_ann}
+    output:
+    file "novel.gene.annotation.csv" into novel_gene_out
+    file "all.gene.annotation.txt" into quant_gene_ann, diff_gene_ann
+    
+    script:
+    """
+    python ${script_dir}/novel_gene/annotate_novel_gene.py \\
+        --input-file ${novel_fa} \\
+        --gene2tr ${gene2tr}
+    
+    python ${script_dir}/novel_gene/gene_location.py \\
+        --gtf-file ${novel_gtf} \\
+        --outfile novel.loc.txt
 
-    python ${script_dir}/lncrna/split_gtf_by_type.py \\
-        --gtf novel.gtf \\
-        --outdir . --novel
+    python ${script_dir}/novel_gene/gene_location.py \\
+        --gtf-file ${gtf} \\
+        --outfile known.loc.txt
 
-    gffread lncRNA.gtf \\
-        -g ${genome} \\
-        -w lncRNA.fa  
+    python ${script_dir}/utils/merge_files.py \\
+        known.loc.txt \\
+        ${gene_des} \\
+        known.gene.annotation.txt \\
+        --na_rep '--' \\
+        --method left 
 
-    gffread TUCP.gtf \\
-        -g ${genome} \\
-        -w TUCP.fa  
+
+    python ${script_dir}/utils/merge_files.py \\
+        novel.loc.txt \\
+        novel.annotation.txt \\
+        novel.gene.annotation.txt \\
+        --na_rep '--' \\
+        --method left 
+
+    python ${script_dir}/utils/merge_files.py \\
+        known.gene.annotation.txt \\
+        novel.gene.annotation.txt \\
+        all.gene.annotation.txt \\
+        --by_row
+
+    python ${script_dir}/utils/merge_files.py \\
+        novel.loc.txt \\
+        novel.annotation.detail.txt \\
+        novel.gene.annotation.csv \\
+        --na_rep '--' \\
+        --method left \\
+        --out_sep ','
     """
 }
-
-
 
 /*
 * quantification
@@ -654,6 +613,7 @@ process mk_kallisto_index {
     input:
     file gtf from kallisto_idx_gtf
     file fasta from genome
+    file fai from genome_fai
     
     output:
     file "transcript.fa" into merged_fa
@@ -698,7 +658,7 @@ process kallisto {
 
     script:
     name = reads[0].toString() - '.R1.clean.fq.gz'
-    st_direction = params.kallisto_lib[params.strand]
+    st_direction = params.kallisto_lib[params.mrna_strand]
     """
     kallisto quant ${st_direction} \\
         --threads ${task.cpus} \\
@@ -716,21 +676,21 @@ process load_kallisto_results {
     input:
     file 'kallisto/*' from kallisto_out.collect()
     file sample_group from sample_group
-    file gene2tr from gene2tr_anno
-    file gene_feature from gene_feature
+    file gene2tr from quant_gene2tr
+    file gene_feature from quant_gene_ann
 
     output:
     file 'expression_summary' into expression_summary, exp_summary_cor, exp_summary_report
     file 'deg_input.RData' into deg_obj
-    file "expression_summary/*correlation_heatmap.png" into cor_plot
-    file "expression_summary/*PCA_plot.png" into pca_plot
+    file "expression_summary/Sample_correlation_heatmap.png" into cor_plot
+    file "expression_summary/PCA_plot.png" into pca_plot
 
     when:
     params.pipeline
     
     script:
     """   
-    /public/software/R/R-3.5.1/executable/bin/Rscript ${script_dir}/quant/lnc_kallisto_to_table.R \\
+    /public/software/R/R-3.5.1/executable/bin/Rscript ${script_dir}/quant/mrna_kallisto_to_table.R \\
         --kallisto_dir kallisto \\
         --sample_inf ${sample_group} \\
         --gene2tr ${gene2tr} \\
@@ -786,12 +746,11 @@ process diff_analysis {
     file compare from diff_compare
     file deg_obj from deg_obj
     file sample_group from sample_group
-    file gf_diff from gf_diff
+    file gf_diff from diff_gene_ann
     
     output:
     file compare into diff_out_go, diff_out_kegg, diff_out_all, diff_tf, diff_out_ppi, diff_out_enrich_plot, pathway_compare, diff_summary
-    file "${compare}/protein_coding_${compare}_Volcano_plot.png" into pcg_diff_plt
-    file "${compare}/lncRNA_${compare}_Volcano_plot.png" into lnc_diff_plt
+    file "${compare}/${compare}_Volcano_plot.png" into diff_plt
     file "${compare}/${compare}.edgeR.DE_results.txt" into diff_table
     
     when:
@@ -801,7 +760,7 @@ process diff_analysis {
     """
     mv ${compare} ${compare}_compare
 
-    /public/software/R/R-3.5.1/executable/bin/Rscript ${script_dir}/quant/diff_edgeR.R \\
+    /public/software/R/R-3.5.1/executable/bin/Rscript ${script_dir}/quant/mrna_diff_edgeR.R \\
         --deg_rdata ${deg_obj} \\
         --compare ${compare} \\
         --sample_inf ${sample_group} \\
@@ -831,8 +790,6 @@ if (params.chr_size && params.chr_window) {
         file chr_window from chr_window
         
         output:
-        file "protein_coding_${compare}_diff_gene_location.*" into pcg_diff_loc
-        file "lncRNA_${compare}_diff_gene_location.*" into lnc_diff_loc
         file "${compare}_diff_gene_location.*" into all_diff_loc
             
         when:
@@ -841,14 +798,6 @@ if (params.chr_size && params.chr_window) {
         script:
         compare = diff_table.baseName - '.edgeR.DE_results'
         """
-        python ${script_dir}/quant/diff_distribute.py \\
-                --diff-file ${diff_table} \\
-                --chr-window ${chr_window} \\
-                --chr-size ${chr_size} \\
-                --pval ${params.exp_diff_pval} \\
-                --logfc ${params.exp_lgfc} \\
-                --lnc
-
         python ${script_dir}/quant/diff_distribute.py \\
                 --diff-file ${diff_table} \\
                 --chr-window ${chr_window} \\
@@ -871,7 +820,7 @@ process diff_exp_summary {
             if (filename.indexOf("count.txt") > 0) "quantification/expression_summary/${filename}"
             else if (filename.indexOf("tpm.txt") > 0) "quantification/expression_summary/${filename}"
             else if (filename.indexOf("heatmap") > 0) "quantification/expression_summary/${filename}"
-            else "lncRNA_function/${filename}"
+            else null
         }
 
     input:
@@ -880,19 +829,18 @@ process diff_exp_summary {
     file sample_group from sample_group
 
     output:
-    file "*heatmap.{pdf,png}" into diff_heatmap
+    file "Diff_genes_heatmap.{pdf,png}" into diff_heatmap
     file 'Diff_genes*count.txt' into diff_count
     file 'Diff_genes_tpm.txt' into diff_tpm
     file 'cluster_plot' optional true into cluster_plot
     file 'Diff_genes_cluster.txt' optional true into cluster_gene_detail
-    file 'cluster_genes/*' optional true into cluster_gene_list
 
     when:
     params.pipeline
 
     script:
     """
-    /public/software/R/R-3.5.1/executable/bin/Rscript ${script_dir}/quant/quant_report.R \\
+    /public/software/R/R-3.5.1/executable/bin/Rscript ${script_dir}/quant/mrna_quant_report.R \\
         --exp_dir ${expression_summary} \\
         --diff_dir diff \\
         --sample_inf ${sample_group} \\
@@ -1024,176 +972,6 @@ process kegg_analysis {
 
 
 /*
-* lncRNA function
-*/
-
-process lnc_cis {
-    
-    publishDir "${params.outdir}/${params.proj_name}/result/lncRNA_function/", mode: 'copy'
-
-    input:
-    file lnc_gtf from lncRNA_gtf
-    file split_gtf_dir from split_gtf_dir
-    file exp_summary from exp_summary_cor
-    file sample_group from sample_group
-    file gene_feature from gf_cis
-
-    output:
-    file "lncRNA_neighbour_correlation.csv" into fee_raw
-    file "best_lncRNA_neighbour_correlation.csv" into fee_best
-    
-    when:
-    params.pipeline
-
-    script:
-    """
-    /public/software/FEELnc/scripts/FEELnc_classifier.pl \\
-        -i ${lnc_gtf} \\
-        -a ${split_gtf_dir}/protein_coding.gtf \\
-        -w 100000 > lncRNA_neighbour.txt
-
-    python ${script_dir}/lncrna/neighbour_lnc_pcg_cor.py \\
-        ${exp_summary}/Gene.tpm.txt \\
-        lncRNA_neighbour.txt \\
-        ${sample_group} ${gene_feature} 
-
-    """
-}
-
-
-if (params.chr_size && params.chr_window) {
-
-    process lnc_nb_loc {
-
-        publishDir "${params.outdir}/${params.proj_name}/result/lncRNA_function/", mode: 'copy'
-        
-        input:
-        file fee_raw from fee_raw
-        file chr_size from chr_size
-        file chr_window from chr_window
-        
-        output:
-        file "lncRNA_PCG_neighbour_distribution.*" into lnc_nb_loc
-            
-        when:
-        params.pipeline
-
-        script:
-        """
-        python ${script_dir}/lncrna/lnc_nb_distribute.py \\
-                --lnc-nb ${fee_raw} \\
-                --chr-size ${chr_size} \\
-                --chr-window ${chr_window}
-        """
-    }
-
-}
-
-
-
-cluster_gene_list
-    .flatMap()
-    .into { cluster_gene_file; cluster_kegg_gene }
-
-process lnc_cluster_go {
-    tag "${cluster_name}"
-
-    errorStrategy 'ignore'
-
-    publishDir "${params.outdir}/${params.proj_name}/result/lncRNA_function/cluster_function/go/${cluster_name}", mode: 'copy'
-
-    input:
-    file cluster from cluster_gene_file
-    file go_anno from go_anno
-    file gene_length from gene_length
-    
-    output:
-    file "${cluster_name}_go_enrichment.txt" into cls_go_out
-    file "DAG" into cls_dag_plot
-    file "${cluster_name}_go_enrichment_barplot*" into cls_go_barplot
-    
-    when:
-    params.pipeline    
-
-    script:
-    cluster_name = cluster.baseName
-    """
-    /public/software/R/R-3.5.1/executable/bin/Rscript ${script_dir}/enrichment/go_analysis.R \\
-        --name ${cluster_name} \\
-        --gene_list ${cluster} \\
-        --go_anno ${go_anno} \\
-        --gene_length ${gene_length} \\
-        --out_dir .
-
-    if [ -s ${cluster_name}_go_enrichment.txt ]
-    then
-        /public/software/R/R-3.5.1/executable/bin/Rscript ${script_dir}/enrichment/enrich_bar.R \\
-            --enrich_file ${cluster_name}_go_enrichment.txt
-    fi
-    """
-}
-
-//KEGG enrichment
-process lnc_cluster_kegg {
-
-    tag "${cluster_name}"
-
-    errorStrategy 'ignore'
-
-    conda "/public/software/miniconda3/envs/kobas/"
-
-    queue 'om'
-    
-    publishDir "${params.outdir}/${params.proj_name}/result/lncRNA_function/cluster_function/kegg/${cluster_name}", mode: 'copy',
-        saveAs: {filename -> filename.indexOf("kegg_enrichment") > 0 ? "$filename" : null}   
-
-    input:
-    file cluster from cluster_kegg_gene
-    file kegg_anno from kegg_anno
-    
-    output:
-    file "${cluster_name}_kegg_enrichment.txt" into cls_kegg_out, cls_kegg_pathway_input
-    file "${cluster_name}.blasttab" into kls_cegg_pathway_blast
-    file "${cluster_name}_kegg_enrichment_barplot*" into cls_kegg_barplot
-    
-    when:
-    params.pipeline    
-    
-    script:
-    cluster_name = cluster.baseName
-    """
-    python ${script_dir}/utils/extract_info_by_id.py \\
-        --id ${cluster} \\
-        --table ${kegg_anno} \\
-        --output ${cluster_name}.blasttab
-
-
-    if [ -s ${cluster_name}.blasttab ]
-    then
-        kobas-run \\
-            -i ${cluster_name}.blasttab \\
-            -t blastout:tab \\
-            -s ${params.kegg_abbr} \\
-            -b ${kegg_backgroud} \\
-            -d K \\
-            -o ${cluster_name}_kegg_enrichment.txt
-    fi
-
-    if [ -s ${cluster_name}_kegg_enrichment.txt ]
-    then
-        python ${script_dir}/enrichment/treat_kegg_table.py \\
-            --kegg ${cluster_name}_kegg_enrichment.txt
-    fi
-
-    if [ -s ${cluster_name}_kegg_enrichment.txt ]
-    then   
-        /public/software/R/R-3.5.1/executable/bin/Rscript ${script_dir}/enrichment/enrich_bar.R \\
-            --enrich_file ${cluster_name}_kegg_enrichment.txt
-    fi
-    """
-}
-
-/*
 * analysis report
 */
 
@@ -1222,23 +1000,15 @@ process pipe_report {
     file ('gene_coverage/*') from gene_coverage_plt.collect()
     file assembly_unannotated_fig
     file ('assembly_tmap/*') from assembly_tmap.collect()
-    file ('lnc_number/*') from lnc_num_plt
-    file ('lnc_feature/*') from lnc_feature_plt
     file expression_summary from exp_summary_report
-    file ('pca_plot/*') from pca_plot.collect()
-    file ('cor_plot/*') from cor_plot.collect()
-    file ('pcg_volcano/*') from pcg_diff_plt.collect()
-    file ('lnc_volcano/*') from lnc_diff_plt.collect()
-    file ('pcg_diff_dis/*') from pcg_diff_loc.collect()
-    file ('lnc_diff_dis/*') from lnc_diff_loc.collect()
+    file pca_plot from pca_plot
+    file cor_plot from cor_plot
+    file ('volcano/*') from diff_plt.collect()
+    file ('diff_loc/*') from all_diff_loc.collect()
     file ('heatmap/*') from diff_heatmap
+    file cluster_plot from cluster_plot
     file ('go_barplot/*') from go_barplot.collect()
     file ('kegg_barplot/*') from kegg_barplot.collect()
-    file fee_best from fee_best
-    file cluster_plot from cluster_plot
-    file ('lnc_cluster_go/*') from cls_go_barplot.collect()
-    file ('lnc_cluster_kegg/*') from cls_kegg_barplot.collect()
-    file ('lnc_nb_plot/*') from lnc_nb_loc
 
 
     output:
@@ -1249,7 +1019,7 @@ process pipe_report {
     params.pipeline
 
     script:
-    stranded_flag = params.stranded_flag[params.strand]
+    stranded_flag = params.stranded_flag[params.mrna_strand]
     """
     python ${script_dir}/rnaseq_qc/star_mapping_summary.py \\
         ./star ./
@@ -1261,7 +1031,7 @@ process pipe_report {
         --tmap_dir assembly_tmap ${stranded_flag} \\
         --out_dir .
 
-    python ${script_dir}/report/report.py .
+    python ${script_dir}/report/report.py . --report_title "转录组分析报告"
 
     """
     

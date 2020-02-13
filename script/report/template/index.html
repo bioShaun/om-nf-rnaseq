@@ -33,7 +33,7 @@
             </div>
 
             <ul class="list-unstyled components">
-                <a href="#"><p>LncRNA 分析报告</p></a>
+                <a href="#"><p>{{report_title}}</p></a>
                 {% if data_info %}
                 <li>
                     <a href="#dataInfMenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">数据质控</a>
@@ -111,6 +111,11 @@
                             <a href="#pca_correlation">样品相关性分析</a>
                         </li>
                         {% endif %}
+                        {% if Sample_correlation_heatmap %}
+                        <li>
+                            <a href="#pca_correlation">样品相关性分析</a>
+                        </li>
+                        {% endif %}
                     </ul>
                 </li>
                 {% endif %}
@@ -129,6 +134,26 @@
                         {% if pcg_diff_dis %}
                         <li>
                             <a href="#diff_loc">差异性基因分布</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </li>
+                {% endif %}
+                {% if volcano %}
+                <li>
+                    <a href="#diffMenu" data-toggle="collapse" aria-expanded="false" class="dropdown-toggle">差异分析</a>
+                    <ul class="collapse list-unstyled" id="diffMenu">
+                        <li>
+                            <a href="#diff">差异基因火山图</a>
+                        </li>
+                        {% if diff_loc %}
+                        <li>
+                            <a href="#diff_loc">差异性基因分布</a>
+                        </li>
+                        {% endif %}
+                        {% if Diff_genes_heatmap %}
+                        <li>
+                            <a href="#heatmap">差异性基因聚类</a>
                         </li>
                         {% endif %}
                     </ul>
@@ -211,6 +236,10 @@
 
                 {% if pcg_volcano %}
                     {% include "modules/diff.html" %}
+                {% endif %}
+
+                {% if volcano %}
+                    {% include "modules/mrna_diff.html" %}
                 {% endif %}
 
                 {% if go_barplot %}

@@ -24,7 +24,6 @@ def label2genetype(unique_label):
 
 def dfline2gtfline(dfline):
     basic_inf = dfline[:8]
-    basic_inf.fillna('.', inplace=True)
     basic_inf.frame = '.'
     basic_inf_list = [str(each) for each in basic_inf]
     basic_inf_line = '\t'.join(basic_inf_list)
@@ -39,6 +38,7 @@ def dfline2gtfline(dfline):
 
 def cpc2lnc(cpc, gtf, split_gtf_dir, outfile):
     gtf_df = read_gtf(gtf)
+    gtf_df.fillna('.', inplace=True)
     tr_df = gtf_df[gtf_df.feature == 'transcript']
     tr2gene_df = tr_df.loc[:, ['transcript_id', 'gene_id']]
     cpc_df = pd.read_csv(cpc, sep='\t')
