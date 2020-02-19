@@ -206,7 +206,9 @@ normMat <- normMat/exp(rowMeans(log(normMat)))
 o <- log(calcNormFactors(cts/normMat)) + log(colSums(cts/normMat))
 deg_obj <- DGEList(cts, group=samples$condition)
 deg_obj <- scaleOffset(deg_obj, t(t(log(normMat)) + o))
-keep <- filterByExpr(deg_obj)
+#keep <- filterByExpr(deg_obj)
+# bug: In min(n[n > 1L]) : no non-missing arguments to min; returning Inf
+keep <- rowSums(cpm(y) > 0.1) >= 1 
 deg_obj_list <- list(deg_obj=deg_obj[keep, ],
                      normfactors=normfactors$samples$norm.factors)
 save(deg_obj_list, file='deg_input.RData')
