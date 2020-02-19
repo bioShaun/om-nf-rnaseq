@@ -63,6 +63,7 @@ params.star_index = "${params.genomes_base}/${params.db_name}/${params.star_inde
 params.kegg_anno = "${params.genomes_base}/${params.db_name}/${params.kegg_abbr}.${params.kegg_anno_name}"
 params.go_anno = "${params.genomes_base}/${params.db_name}/${params.go_name}"
 params.gene_ann = "${params.genomes_base}/${params.db_name}/${params.gene_des_name}"
+params.venn = false
 
 
 if (!params.kegg_backgroud) {
@@ -76,6 +77,12 @@ if (params.pipeline) {
     sample_group = check_ref_exist(params.sample_group, 'Sample vs Group file')
 } else {
     sample_group = ''
+}
+
+if (params.venn) {
+    venn_list = file(params.venn)
+} else {
+    venn_list = file('')
 }
 
 // check ref
@@ -749,7 +756,7 @@ process diff_analysis {
     file gf_diff from diff_gene_ann
     
     output:
-    file compare into diff_out_go, diff_out_kegg, diff_out_all, diff_tf, diff_out_ppi, diff_out_enrich_plot, pathway_compare, diff_summary
+    file compare into diff_out_go, diff_out_kegg, diff_out_all, diff_tf, diff_out_ppi, diff_out_enrich_plot, pathway_compare, diff_summary, diff_venn
     file "${compare}/${compare}_Volcano_plot.png" into diff_plt
     file "${compare}/${compare}.edgeR.DE_results.txt" into diff_table
     
@@ -848,6 +855,38 @@ process diff_exp_summary {
         --grp_num ${params.min_cluster_grp}
     """
 }
+
+/*
+* Venn diagram
+*/
+process diff_gene_venn {
+
+    publishDir "${params.outdir}/${params.proj_name}/result/quantification/expression_summary/", mode: 'copy',
+        saveAs: {filename -> 
+            if (filename.indexOf(".png") > 0) null
+            else filename
+        }
+
+    input:
+    file "diff/*" from diff_venn.collect()
+    file venn_list from venn_list
+
+    output:
+    file "venn_plot" into venn_plot_dir
+    file "report_plot/*.venn.png" into venn_plot_file
+
+    when:
+    params.venn && params.pipeline
+
+    script:
+    """
+    python ${script_dir}/quant/venn_plot.py \\
+        --diff_dir diff \\
+        --combination_file ${venn_list} \\
+        --out_dir .
+    """
+}
+
 
 
 /*
@@ -1007,8 +1046,10 @@ process pipe_report {
     file ('diff_loc/*') from all_diff_loc.collect()
     file ('heatmap/*') from diff_heatmap
     file cluster_plot from cluster_plot
+    file ('venn_plot/*') from venn_plot_file
     file ('go_barplot/*') from go_barplot.collect()
     file ('kegg_barplot/*') from kegg_barplot.collect()
+    
 
 
     output:

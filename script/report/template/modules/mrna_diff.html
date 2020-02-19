@@ -54,6 +54,34 @@
     </div>
     {% endif %}
 
+    {% if venn_plot %}
+    <div id="venn" class="block">
+        <h4>差异性基因韦恩图</h4>
+        <div class="description">
+            <p>
+                韦恩图能方便展示不同差异比较组（5个以内）之间的特有基因和共有基因。
+            </p>
+        </div>
+
+        <div class="plot">
+            <div class="fotorama" 
+                data-width="600" 
+                data-ratio="4/3" 
+                data-max-width="100%"
+                data-allowfullscreen="true"
+                data-nav="thumbs"
+                data-transition="crossfade"
+                data-loop="true"
+            >
+            {% for plot in venn_plot %}
+                <img src="{{plot}}">
+            {% endfor %}
+            </div>
+        </div>
+
+    </div>
+    {% endif %}
+
     {% if Diff_genes_heatmap %}
     <div id="heatmap" class="block">
         <h4>差异性基因聚类热图</h4>

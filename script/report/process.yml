@@ -96,6 +96,7 @@ process:
         - heatmap/Diff_genes_heatmap.png
         - diff_loc
         - cluster_plot
+        - venn_plot
       cite:
         volcano:
           - edgeR
