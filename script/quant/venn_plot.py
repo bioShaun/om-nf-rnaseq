@@ -4,12 +4,13 @@ import os
 import sys
 import math
 import click
+import delegator
 import pandas as pd
 import itertools
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+from pathlib import Path
 from matplotlib import colors
 from itertools import chain
 from collections import Iterable
@@ -17,7 +18,8 @@ mpl.use('Agg')
 
 
 DIFF_LIST_SFX = 'edgeR.DE_results.diffgenes.txt'
-
+R_BIN = '/public/software/R/R-3.5.1/executable/bin/Rscript'
+UPSET_PLOT_R = Path(__file__).parent / 'upset_plot_cli.R'
 
 default_colors = [
     # r, g, b, a
@@ -104,6 +106,8 @@ def draw_annotate(fig, ax, x, y, textx, texty, text, color=[0, 0, 0, 1], arrowco
 def get_labels(data, fill=["number"]):
     """
     get a dict of labels for groups in data
+import matplotlib.pyplot as plt
+p:
 
     @type data: list[Iterable]
     @rtype: dict[str, str]
@@ -519,49 +523,73 @@ def output_plot(fig, out_prefix, pdf=True):
 VENN_FUNCS = {key: val for key, val in locals().items() if 'venn' in key}
 
 
+def plot_subset_plot(diff_matrix, out_prefix):
+    plot_cmd = (f'{R_BIN} {UPSET_PLOT_R} '
+                f'--gene_matrix {diff_matrix} '
+                f'--out_prefix {out_prefix}')
+    r = delegator.run(plot_cmd)
+    return r
+
+
 def plot_one_combination(diff_dir, combination, out_dir):
     combination_list = combination.split(',')
     comb_num = len(combination_list)
     # check combination number, only support 2-5 combination to draw venn
-    if comb_num < 2 or comb_num > 5:
-        click.echo('Sets number error.\nSupported 2-5 sets venn plot.')
+    if comb_num < 2:
+        click.echo('at least 2 sets were required.')
         sys.exit(1)
-
     # read diff-gene list
     gene_list = []
+    gene_df_list = []
     for each_com in combination_list:
         each_com_diff_genes = os.path.join(
             diff_dir, each_com, '{c}.ALL.{s}'.format(
                 c=each_com, s=DIFF_LIST_SFX))
         diff_df = pd.read_table(each_com_diff_genes, header=None, index_col=0)
         gene_list.append(diff_df.index)
+        diff_df.loc[:, each_com] = 1
+        gene_df_list.append(diff_df)
 
-    # draw venn, output 2 figs, one with logical numbers and the other without
-    labels, col_set = get_labels(gene_list, fill=['number', 'logic'])
-    labels_simple, col_set = get_labels(gene_list, fill=['number'])
     venn_prefix = '__'.join(combination_list)
-    result_plt_dir = os.path.join(
-        out_dir, 'venn_plot', venn_prefix)
-    save_mkdir(result_plt_dir)
     report_plt_dir = os.path.join(
         out_dir, 'report_plot',
     )
     save_mkdir(report_plt_dir)
-    venn_plot = VENN_FUNCS[f'venn{comb_num}']
-    fig_detail, ax = venn_plot(labels, names=combination_list)
-    venn_detail = os.path.join(result_plt_dir, 'venn_plot.detail')
-    output_plot(fig_detail, venn_detail)
-    fig_simple, ax = venn_plot(labels_simple, names=combination_list)
-    venn_simple = os.path.join(result_plt_dir, 'venn_plot')
-    output_plot(fig_simple, venn_simple)
-    fig_simple2, ax = venn_plot(labels_simple, names=combination_list)
-    venn_report = os.path.join(report_plt_dir, f'{venn_prefix}.venn')
-    output_plot(fig_simple2, venn_report, pdf=False)
+    if comb_num <= 5:
+        # draw venn, output 2 figs, one with logical numbers and the other without
+        labels, col_set = get_labels(gene_list, fill=['number', 'logic'])
+        labels_simple, col_set = get_labels(gene_list, fill=['number'])
+        result_plt_dir = os.path.join(
+            out_dir, 'venn_plot', venn_prefix)
+        save_mkdir(result_plt_dir)
+        venn_plot = VENN_FUNCS[f'venn{comb_num}']
+        fig_detail, ax = venn_plot(labels, names=combination_list)
+        venn_detail = os.path.join(result_plt_dir, 'venn_plot.detail')
+        output_plot(fig_detail, venn_detail)
+        fig_simple, ax = venn_plot(labels_simple, names=combination_list)
+        venn_simple = os.path.join(result_plt_dir, 'venn_plot')
+        output_plot(fig_simple, venn_simple)
+        fig_simple2, ax = venn_plot(labels_simple, names=combination_list)
+        venn_report = os.path.join(report_plt_dir, f'{venn_prefix}.venn')
+        output_plot(fig_simple2, venn_report, pdf=False)
 
-    # output gene ids in each part of venn
-    for each_part in col_set:
-        out_file = os.path.join(result_plt_dir, '{n}.txt'.format(n=each_part))
-        write_obj_to_file(col_set[each_part], out_file)
+        # output gene ids in each part of venn
+        for each_part in col_set:
+            out_file = os.path.join(
+                result_plt_dir, '{n}.txt'.format(n=each_part))
+            write_obj_to_file(col_set[each_part], out_file)
+    else:
+        result_plt_dir = os.path.join(
+            out_dir, 'upset_plot', venn_prefix)
+        save_mkdir(result_plt_dir)
+        diff_gene_df = pd.concat(gene_df_list, axis=1)
+        diff_gene_df.fillna(0, inplace=True)
+        diff_gene_file = os.path.join(result_plt_dir, f'Diff.gene.matrix.csv')
+        diff_gene_df.to_csv(diff_gene_file)
+        venn_simple = os.path.join(result_plt_dir, 'upset_plot')
+        venn_report = os.path.join(report_plt_dir, f'{venn_prefix}.upset_plot')
+        plot_subset_plot(diff_gene_file, venn_simple)
+        plot_subset_plot(diff_gene_file, venn_report)
 
 
 @click.command()

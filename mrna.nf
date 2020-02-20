@@ -874,7 +874,9 @@ process diff_gene_venn {
     output:
     file "venn_plot" into venn_plot_dir
     file "report_plot/*.venn.png" into venn_plot_file
-
+    file "upset_plot" optional true into upset_plot_dir
+    file "report_plot/*.upset_plot.png" optional true into upset_plot_file
+    
     when:
     params.venn && params.pipeline
 
@@ -1047,6 +1049,7 @@ process pipe_report {
     file ('heatmap/*') from diff_heatmap
     file cluster_plot from cluster_plot
     file ('venn_plot/*') from venn_plot_file
+    file ('upset_plot/*') from upset_plot_file
     file ('go_barplot/*') from go_barplot.collect()
     file ('kegg_barplot/*') from kegg_barplot.collect()
     

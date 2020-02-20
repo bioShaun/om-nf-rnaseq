@@ -97,6 +97,7 @@ process:
         - diff_loc
         - cluster_plot
         - venn_plot
+        - upset_plot
       cite:
         volcano:
           - edgeR

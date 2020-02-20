@@ -82,6 +82,34 @@
     </div>
     {% endif %}
 
+    {% if upset_plot %}
+    <div id="upset_plot" class="block">
+        <h4>差异性基因UpSet图</h4>
+        <div class="description">
+            <p>
+	      当集合数目过多时，UpSet图能够更直观的展现集合之间的关系。因此，当差异比较组数目大于5个时，我们使用UpSet图展示。
+            </p>
+        </div>
+
+        <div class="plot">
+            <div class="fotorama" 
+                data-width="900" 
+                data-ratio="4/3" 
+                data-max-width="100%"
+                data-allowfullscreen="true"
+                data-nav="thumbs"
+                data-transition="crossfade"
+                data-loop="true"
+            >
+            {% for plot in upset_plot %}
+                <img src="{{plot}}">
+            {% endfor %}
+            </div>
+        </div>
+
+    </div>
+    {% endif %}
+
     {% if Diff_genes_heatmap %}
     <div id="heatmap" class="block">
         <h4>差异性基因聚类热图</h4>
