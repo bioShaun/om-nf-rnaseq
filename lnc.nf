@@ -64,6 +64,7 @@ params.kegg_anno = "${params.genomes_base}/${params.db_name}/${params.kegg_abbr}
 params.go_anno = "${params.genomes_base}/${params.db_name}/${params.go_name}"
 params.gene_ann = "${params.genomes_base}/${params.db_name}/${params.gene_des_name}"
 
+
 if (!params.kegg_backgroud) {
     kegg_backgroud = params.kegg_abbr
 } else {
@@ -792,7 +793,7 @@ process diff_analysis {
     file gf_diff from gf_diff
     
     output:
-    file compare into diff_out_go, diff_out_kegg, diff_out_all, diff_tf, diff_out_ppi, diff_out_enrich_plot, pathway_compare, diff_summary
+    file compare into diff_out_go, diff_out_kegg, diff_out_all, diff_tf, diff_out_ppi, diff_out_enrich_plot, pathway_compare, diff_summary, diff_venn
     file "${compare}/protein_coding_${compare}_Volcano_plot.png" into pcg_diff_plt
     file "${compare}/lncRNA_${compare}_Volcano_plot.png" into lnc_diff_plt
     file "${compare}/${compare}.edgeR.DE_results.txt" into diff_table
@@ -804,7 +805,7 @@ process diff_analysis {
     """
     mv ${compare} ${compare}_compare
 
-    /public/software/R/R-3.5.1/executable/bin/Rscript ${script_dir}/quant/diff_edgeR.R \\
+    /public/software/R/R-3.5.1/executable/bin/Rscript ${script_dir}/quant/lnc_diff_edgeR.R \\
         --deg_rdata ${deg_obj} \\
         --compare ${compare} \\
         --sample_inf ${sample_group} \\
@@ -814,6 +815,69 @@ process diff_analysis {
         --gene_ann ${gf_diff}
     """
 }
+
+/*
+* Venn diagram
+*/
+if (params.venn) {
+
+    venn_list = check_ref_exist(params.venn, 'Venn list')
+
+    process diff_gene_venn {
+
+        publishDir "${params.outdir}/${params.proj_name}/result/quantification/expression_summary/", mode: 'copy',
+            saveAs: {filename -> 
+                if (filename.indexOf(".png") > 0) null
+                else filename
+            }
+
+        input:
+        file "diff/*" from diff_venn.collect()
+        file venn_list from venn_list
+
+        output:
+        file "venn_plot" into venn_plot_dir
+        file "lncRNA_venn_plot" into lnc_venn_plot_dir
+        file "protein_coding_venn_plot" into pcg_venn_plot_dir
+        file "upset_plot" optional true into upset_plot_dir
+        file "lncRNA_upset_plot" optional true into lnc_upset_plot_dir
+        file "protein_coding_upset_plot" optional true into pcg_upset_plot_dir
+        file "report_plot/lncRNA.*.venn.png" into lnc_venn_plot_file
+        file "report_plot/protein*.venn.png" into pcg_venn_plot_file
+        file "report_plot/lncRNA.*.upset_plot.png" optional true into lnc_upset_plot_file
+        file "report_plot/protein*.upset_plot.png" optional true into pcg_upset_plot_file
+        
+        when:
+        params.venn && params.pipeline
+
+        script:
+        """
+        python ${script_dir}/quant/venn_plot.py \\
+            --diff_dir diff \\
+            --combination_file ${venn_list} \\
+            --out_dir .
+
+        python ${script_dir}/quant/venn_plot.py \\
+            --diff_dir diff \\
+            --combination_file ${venn_list} \\
+            --out_dir . \\
+            --gene_type lncRNA
+
+        python ${script_dir}/quant/venn_plot.py \\
+            --diff_dir diff \\
+            --combination_file ${venn_list} \\
+            --out_dir . \\
+            --gene_type protein_coding
+        """
+    }
+
+} else {
+    lnc_venn_plot_file = Channel.empty()
+    pcg_venn_plot_file = Channel.empty()
+    lnc_upset_plot_file = Channel.empty()
+    pcg_upset_plot_file = Channel.empty()
+}
+
 
 if (params.chr_size && params.chr_window) {
     /*
@@ -861,6 +925,9 @@ if (params.chr_size && params.chr_window) {
         """
     }
 
+} else {
+    pcg_diff_loc = Channel.empty()
+    lnc_diff_loc = Channel.empty()
 }
 
 
@@ -965,64 +1032,69 @@ process go_analysis {
 
 
 //KEGG enrichment
-process kegg_analysis {
+if (params.kegg_abbr) {
+    process kegg_analysis {
 
-    tag "${compare_reg}"
+        tag "${compare_reg}"
 
-    errorStrategy 'ignore'
+        errorStrategy 'ignore'
 
-    conda "/public/software/miniconda3/envs/kobas/"
+        conda "/public/software/miniconda3/envs/kobas/"
 
-    queue 'om'
-    
-    publishDir "${params.outdir}/${params.proj_name}/result/enrichment/kegg/", mode: 'copy',
-        saveAs: {filename -> filename.indexOf("kegg_enrichment") > 0 ? "$filename" : null}   
+        queue 'om'
+        
+        publishDir "${params.outdir}/${params.proj_name}/result/enrichment/kegg/", mode: 'copy',
+            saveAs: {filename -> filename.indexOf("kegg_enrichment") > 0 ? "$filename" : null}   
 
-    input:
-    val compare_reg from kegg_compare
-    file "diff/*" from diff_out_kegg.collect()
-    file kegg_anno from kegg_anno
-    
-    output:
-    file "${compare}/${compare}_${reg}_kegg_enrichment.txt" into kegg_out, kegg_pathway_input
-    file "${compare}.${reg}.blasttab" into kegg_pathway_blast
-    file "${compare}/${compare}_${reg}_kegg_enrichment_barplot*" into kegg_barplot
+        input:
+        val compare_reg from kegg_compare
+        file "diff/*" from diff_out_kegg.collect()
+        file kegg_anno from kegg_anno
+        
+        output:
+        file "${compare}/${compare}_${reg}_kegg_enrichment.txt" into kegg_out, kegg_pathway_input
+        file "${compare}.${reg}.blasttab" into kegg_pathway_blast
+        file "${compare}/${compare}_${reg}_kegg_enrichment_barplot*" into kegg_barplot
 
-    when:
-    params.pipeline && params.kegg_abbr
-    
-    script:
-    (compare, reg) = compare_reg.split(';')
-    """
-    if [ -s diff/${compare}/${compare}.${reg}.edgeR.DE_results.diffgenes.txt ]
-    then
-        python ${script_dir}/utils/extract_info_by_id.py \\
-            --id diff/${compare}/${compare}.${reg}.edgeR.DE_results.diffgenes.txt \\
-            --table ${kegg_anno} \\
-            --output ${compare}.${reg}.blasttab
-    fi
+        when:
+        params.pipeline && params.kegg_abbr
+        
+        script:
+        (compare, reg) = compare_reg.split(';')
+        """
+        if [ -s diff/${compare}/${compare}.${reg}.edgeR.DE_results.diffgenes.txt ]
+        then
+            python ${script_dir}/utils/extract_info_by_id.py \\
+                --id diff/${compare}/${compare}.${reg}.edgeR.DE_results.diffgenes.txt \\
+                --table ${kegg_anno} \\
+                --output ${compare}.${reg}.blasttab
+        fi
 
-    if [ -s ${compare}.${reg}.blasttab ]
-    then
-        mkdir -p ${compare}
-        kobas-run \\
-            -i ${compare}.${reg}.blasttab \\
-            -t blastout:tab \\
-            -s ${params.kegg_abbr} \\
-            -b ${kegg_backgroud} \\
-            -d K \\
-            -o ${compare}/${compare}_${reg}_kegg_enrichment.txt
-    fi
+        if [ -s ${compare}.${reg}.blasttab ]
+        then
+            mkdir -p ${compare}
+            kobas-run \\
+                -i ${compare}.${reg}.blasttab \\
+                -t blastout:tab \\
+                -s ${params.kegg_abbr} \\
+                -b ${kegg_backgroud} \\
+                -d K \\
+                -o ${compare}/${compare}_${reg}_kegg_enrichment.txt
+        fi
 
-    if [ -s ${compare}/${compare}_${reg}_kegg_enrichment.txt ]
-    then
-        python ${script_dir}/enrichment/treat_kegg_table.py \\
-            --kegg ${compare}/${compare}_${reg}_kegg_enrichment.txt
+        if [ -s ${compare}/${compare}_${reg}_kegg_enrichment.txt ]
+        then
+            python ${script_dir}/enrichment/treat_kegg_table.py \\
+                --kegg ${compare}/${compare}_${reg}_kegg_enrichment.txt
 
-        /public/software/R/R-3.5.1/executable/bin/Rscript ${script_dir}/enrichment/enrich_bar.R \\
-            --enrich_file ${compare}/${compare}_${reg}_kegg_enrichment.txt
-    fi
-    """
+            /public/software/R/R-3.5.1/executable/bin/Rscript ${script_dir}/enrichment/enrich_bar.R \\
+                --enrich_file ${compare}/${compare}_${reg}_kegg_enrichment.txt
+        fi
+        """
+    }
+} else {
+    kegg_barplot = Channel.empty()
+    cls_kegg_barplot = Channel.empty()
 }
 
 
@@ -1076,7 +1148,7 @@ if (params.chr_size && params.chr_window) {
         file chr_window from chr_window
         
         output:
-        file "lncRNA_PCG_neighbour_distribution.*" into lnc_nb_loc
+        file "lncRNA_PCG_neighbour_distribution.*" into lnc_nb_loc_plot
             
         when:
         params.pipeline
@@ -1090,8 +1162,9 @@ if (params.chr_size && params.chr_window) {
         """
     }
 
+} else {
+    lnc_nb_loc_plot = Channel.empty()
 }
-
 
 
 cluster_gene_list
@@ -1196,6 +1269,7 @@ process lnc_cluster_kegg {
     """
 }
 
+
 /*
 * analysis report
 */
@@ -1232,21 +1306,26 @@ process pipe_report {
     file ('cor_plot/*') from cor_plot.collect()
     file ('pcg_volcano/*') from pcg_diff_plt.collect()
     file ('lnc_volcano/*') from lnc_diff_plt.collect()
-    file ('pcg_diff_dis/*') from pcg_diff_loc.collect()
-    file ('lnc_diff_dis/*') from lnc_diff_loc.collect()
-    file ('heatmap/*') from diff_heatmap
-    file ('go_barplot/*') from go_barplot.collect()
-    file ('kegg_barplot/*') from kegg_barplot.collect()
+    file ('lnc_venn_plot/*') from lnc_venn_plot_file.ifEmpty(null)
+    file ('pcg_venn_plot/*') from pcg_venn_plot_file.ifEmpty(null)
+    file ('lnc_upset_plot/*') from lnc_upset_plot_file.ifEmpty(null)
+    file ('pcg_upset_plot/*') from pcg_upset_plot_file.ifEmpty(null)
+    file ('pcg_diff_dis/*') from pcg_diff_loc.collect().ifEmpty([])
+    file ('lnc_diff_dis/*') from lnc_diff_loc.collect().ifEmpty([])
+    file ('heatmap/*') from diff_heatmap.ifEmpty(null)
+    file ('go_barplot/*') from go_barplot.collect().ifEmpty([])
+    file ('kegg_barplot/*') from kegg_barplot.collect().ifEmpty([])
     file fee_best from fee_best
-    file cluster_plot from cluster_plot
-    file ('lnc_cluster_go/*') from cls_go_barplot.collect()
-    file ('lnc_cluster_kegg/*') from cls_kegg_barplot.collect()
-    file ('lnc_nb_plot/*') from lnc_nb_loc
+    file cluster_plot from cluster_plot.ifEmpty(null)
+    file ('lnc_cluster_go/*') from cls_go_barplot.collect().ifEmpty([])
+    file ('lnc_cluster_kegg/*') from cls_kegg_barplot.collect().ifEmpty([])
+    file ('lnc_nb_plot/*') from lnc_nb_loc_plot.ifEmpty(null)
 
 
     output:
 	file "*.{csv,pdf,png}" into analysis_results
     file "report" into analysis_report
+    file "test_report" into test_analysis_report
 
     when:
     params.pipeline
@@ -1263,6 +1342,8 @@ process pipe_report {
     python ${script_dir}/assembly/assembly_stats.py stats_all \\
         --tmap_dir assembly_tmap ${stranded_flag} \\
         --out_dir .
+
+    python ${script_dir}/report/report.py . --report_dir test_report --full False
 
     python ${script_dir}/report/report.py .
 

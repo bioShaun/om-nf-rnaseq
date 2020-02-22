@@ -1047,9 +1047,9 @@ process pipe_report {
     file ('volcano/*') from diff_plt.collect()
     file ('diff_loc/*') from all_diff_loc.collect()
     file ('heatmap/*') from diff_heatmap
-    file cluster_plot from cluster_plot
+    file cluster_plot from cluster_plot.ifEmpty { null }
     file ('venn_plot/*') from venn_plot_file
-    file ('upset_plot/*') from upset_plot_file
+    file ('upset_plot/*') from upset_plot_file.ifEmpty { null }
     file ('go_barplot/*') from go_barplot.collect()
     file ('kegg_barplot/*') from kegg_barplot.collect()
     

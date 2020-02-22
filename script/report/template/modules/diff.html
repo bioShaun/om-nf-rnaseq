@@ -50,36 +50,6 @@
 
     </div>
 
-    {% if protein_coding_diff_genes_heatmap %}
-    <div id="heatmap" class="block">
-        <h4>差异性基因聚类热图</h4>
-        <div class="description">
-            <p>
-                通过对差异表达基因进行聚类分析，我们能够获得表达模式相近的基因集。以下左右两图分别展示了差异表达蛋白编码基因和 lncRNA 的聚类热图。
-            </p>
-        </div>
-        <div class="w clearfix">
-            {% if protein_coding_diff_genes_heatmap %}
-            <div class="plot-small fl">
-                <a class="pcg-heatmap-link" 
-                href="{{protein_coding_diff_genes_heatmap}}" data-lightbox="pcg-heatmap">
-                <img class="pcg-heatmap" src="{{protein_coding_diff_genes_heatmap}}" />
-                </a>
-            </div>
-            {% endif %}
-
-            {% if lncRNA_diff_genes_heatmap %}
-            <div class="plot-small fl">
-                <a class="lnc-heatmap" 
-                href="{{lncRNA_diff_genes_heatmap}}" data-lightbox="lnc-heatmap">
-                <img class="lnc-heatmap" src="{{lncRNA_diff_genes_heatmap}}" />
-                </a>
-            </div>
-            {% endif %}
-        </div>
-    </div>
-    {% endif %}
-
     {% if pcg_diff_dis %}
     <div id="diff_loc" class="block">
         <h4>差异性基因在染色体上分布</h4>
@@ -127,5 +97,133 @@
 
     </div>
     {% endif %}
+
+    {% if pcg_venn_plot %}
+    <div id="venn" class="block">
+        <h4>差异性基因韦恩图</h4>
+        <div class="description">
+            <p>
+                韦恩图能方便展示不同差异比较组（5个以内）之间的特有基因和共有基因。左右两图分别展示了蛋白编码基因和 lncRNA 的差异基因韦恩图。
+            </p>
+        </div>
+
+        <div class="w clearfix">
+            {% if pcg_venn_plot %}
+            <div class="plot-small-slider fl">
+                <div class="fotorama" 
+                    data-width="400" 
+                    data-ratio="4/3" 
+                    data-max-width="100%"
+                    data-allowfullscreen="true"
+                    data-nav="thumbs"
+                    data-transition="crossfade"
+                    data-loop="true"
+                >
+                {% for plot in pcg_venn_plot %}
+                    <img src="{{plot}}">
+                {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if lnc_venn_plot %}
+            <div class="plot-small-slider fl">
+                <div class="fotorama" 
+                    data-width="400" 
+                    data-ratio="4/3" 
+                    data-max-width="100%"
+                    data-allowfullscreen="true"
+                    data-nav="thumbs"
+                    data-transition="crossfade"
+                    data-loop="true"
+                >
+                {% for plot in lnc_venn_plot %}
+                    <img src="{{plot}}">
+                {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+    {% endif %}
+
+    {% if pcg_upset_plot %}
+    <div id="upset_plot" class="block">
+        <h4>差异性基因UpSet图</h4>
+        <div class="description">
+            <p>
+	      当集合数目过多时，UpSet图能够更直观的展现集合之间的关系。因此，当差异比较组数目大于5个时，我们使用UpSet图展示。上图和下图分别展示了蛋白编码基因和 lncRNA 的UpSet图。
+            </p>
+        </div>
+
+        <div class="plot">
+            <div class="fotorama" 
+                data-width="900" 
+                data-ratio="4/3" 
+                data-max-width="100%"
+                data-allowfullscreen="true"
+                data-nav="thumbs"
+                data-transition="crossfade"
+                data-loop="true"
+            >
+            {% for plot in pcg_upset_plot %}
+                <img src="{{plot}}">
+            {% endfor %}
+            </div>
+        </div>
+
+        {% if lnc_upset_plot %}
+        <div class="plot">
+            <div class="fotorama" 
+                data-width="900" 
+                data-ratio="4/3" 
+                data-max-width="100%"
+                data-allowfullscreen="true"
+                data-nav="thumbs"
+                data-transition="crossfade"
+                data-loop="true"
+            >
+            {% for plot in lnc_upset_plot %}
+                <img src="{{plot}}">
+            {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+    {% endif %}
+
+    {% if protein_coding_diff_genes_heatmap %}
+    <div id="heatmap" class="block">
+        <h4>差异性基因聚类热图</h4>
+        <div class="description">
+            <p>
+                通过对差异表达基因进行聚类分析，我们能够获得表达模式相近的基因集。以下左右两图分别展示了差异表达蛋白编码基因和 lncRNA 的聚类热图。
+            </p>
+        </div>
+        <div class="w clearfix">
+            {% if protein_coding_diff_genes_heatmap %}
+            <div class="plot-small fl">
+                <a class="pcg-heatmap-link" 
+                href="{{protein_coding_diff_genes_heatmap}}" data-lightbox="pcg-heatmap">
+                <img class="pcg-heatmap" src="{{protein_coding_diff_genes_heatmap}}" />
+                </a>
+            </div>
+            {% endif %}
+
+            {% if lncRNA_diff_genes_heatmap %}
+            <div class="plot-small fl">
+                <a class="lnc-heatmap" 
+                href="{{lncRNA_diff_genes_heatmap}}" data-lightbox="lnc-heatmap">
+                <img class="lnc-heatmap" src="{{lncRNA_diff_genes_heatmap}}" />
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+
 
 </section>

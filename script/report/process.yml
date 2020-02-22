@@ -86,6 +86,10 @@ process:
         - heatmap/lncRNA_diff_genes_heatmap.png
         - pcg_diff_dis
         - lnc_diff_dis
+        - lnc_venn_plot
+        - pcg_venn_plot
+        - lnc_upset_plot
+        - pcg_upset_plot
       cite:
         pcg_volcano:
           - edgeR

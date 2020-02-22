@@ -398,118 +398,6 @@ def venn5(labels, names=['A', 'B', 'C', 'D', 'E'], **options):
     return fig, ax
 
 
-def venn6(labels, names=['A', 'B', 'C', 'D', 'E'], **options):
-    """
-    plots a 6-set Venn diagram
-
-    @type labels: dict[str, str]
-    @type names: list[str]
-    @rtype: (Figure, AxesSubplot)
-
-    input
-      labels: a label dict where keys are identified via binary codes ('000001', '000010', '000100', ...),
-              hence a valid set could look like: {'000001': 'text 1', '000010': 'text 2', '000100': 'text 3', ...}.
-              unmentioned codes are considered as ''.
-      names:  group names
-      more:   colors, figsize, dpi
-
-    return
-      pyplot Figure and AxesSubplot object
-    """
-    colors = options.get('colors', [default_colors[i] for i in range(6)])
-    figsize = options.get('figsize', (20, 20))
-    dpi = options.get('dpi', 96)
-
-    fig = plt.figure(0, figsize=figsize, dpi=dpi)
-    ax = fig.add_subplot(111, aspect='equal')
-    ax.set_axis_off()
-    ax.set_ylim(bottom=0.230, top=0.845)
-    ax.set_xlim(left=0.173, right=0.788)
-
-    # body
-    draw_triangle(fig, ax, 0.637, 0.921, 0.649, 0.274, 0.188, 0.667, colors[0])
-    draw_triangle(fig, ax, 0.981, 0.769, 0.335, 0.191, 0.393, 0.671, colors[1])
-    draw_triangle(fig, ax, 0.941, 0.397, 0.292, 0.475, 0.456, 0.747, colors[2])
-    draw_triangle(fig, ax, 0.662, 0.119, 0.316, 0.548, 0.662, 0.700, colors[3])
-    draw_triangle(fig, ax, 0.309, 0.081, 0.374, 0.718, 0.681, 0.488, colors[4])
-    draw_triangle(fig, ax, 0.016, 0.626, 0.726, 0.687, 0.522, 0.327, colors[5])
-    draw_text(fig, ax, 0.212, 0.562, labels.get('000001', ''))
-    draw_text(fig, ax, 0.430, 0.249, labels.get('000010', ''))
-    draw_text(fig, ax, 0.356, 0.444, labels.get('000011', ''))
-    draw_text(fig, ax, 0.609, 0.255, labels.get('000100', ''))
-    draw_text(fig, ax, 0.323, 0.546, labels.get('000101', ''))
-    draw_text(fig, ax, 0.513, 0.316, labels.get('000110', ''))
-    draw_text(fig, ax, 0.523, 0.348, labels.get('000111', ''))
-    draw_text(fig, ax, 0.747, 0.458, labels.get('001000', ''))
-    draw_text(fig, ax, 0.325, 0.492, labels.get('001001', ''))
-    draw_text(fig, ax, 0.670, 0.481, labels.get('001010', ''))
-    draw_text(fig, ax, 0.359, 0.478, labels.get('001011', ''))
-    draw_text(fig, ax, 0.653, 0.444, labels.get('001100', ''))
-    draw_text(fig, ax, 0.344, 0.526, labels.get('001101', ''))
-    draw_text(fig, ax, 0.653, 0.466, labels.get('001110', ''))
-    draw_text(fig, ax, 0.363, 0.503, labels.get('001111', ''))
-    draw_text(fig, ax, 0.750, 0.616, labels.get('010000', ''))
-    draw_text(fig, ax, 0.682, 0.654, labels.get('010001', ''))
-    draw_text(fig, ax, 0.402, 0.310, labels.get('010010', ''))
-    draw_text(fig, ax, 0.392, 0.421, labels.get('010011', ''))
-    draw_text(fig, ax, 0.653, 0.691, labels.get('010100', ''))
-    draw_text(fig, ax, 0.651, 0.644, labels.get('010101', ''))
-    draw_text(fig, ax, 0.490, 0.340, labels.get('010110', ''))
-    draw_text(fig, ax, 0.468, 0.399, labels.get('010111', ''))
-    draw_text(fig, ax, 0.692, 0.545, labels.get('011000', ''))
-    draw_text(fig, ax, 0.666, 0.592, labels.get('011001', ''))
-    draw_text(fig, ax, 0.665, 0.496, labels.get('011010', ''))
-    draw_text(fig, ax, 0.374, 0.470, labels.get('011011', ''))
-    draw_text(fig, ax, 0.653, 0.537, labels.get('011100', ''))
-    draw_text(fig, ax, 0.652, 0.579, labels.get('011101', ''))
-    draw_text(fig, ax, 0.653, 0.488, labels.get('011110', ''))
-    draw_text(fig, ax, 0.389, 0.486, labels.get('011111', ''))
-    draw_text(fig, ax, 0.553, 0.806, labels.get('100000', ''))
-    draw_text(fig, ax, 0.313, 0.604, labels.get('100001', ''))
-    draw_text(fig, ax, 0.388, 0.694, labels.get('100010', ''))
-    draw_text(fig, ax, 0.375, 0.633, labels.get('100011', ''))
-    draw_text(fig, ax, 0.605, 0.359, labels.get('100100', ''))
-    draw_text(fig, ax, 0.334, 0.555, labels.get('100101', ''))
-    draw_text(fig, ax, 0.582, 0.397, labels.get('100110', ''))
-    draw_text(fig, ax, 0.542, 0.372, labels.get('100111', ''))
-    draw_text(fig, ax, 0.468, 0.708, labels.get('101000', ''))
-    draw_text(fig, ax, 0.355, 0.572, labels.get('101001', ''))
-    draw_text(fig, ax, 0.420, 0.679, labels.get('101010', ''))
-    draw_text(fig, ax, 0.375, 0.597, labels.get('101011', ''))
-    draw_text(fig, ax, 0.641, 0.436, labels.get('101100', ''))
-    draw_text(fig, ax, 0.348, 0.538, labels.get('101101', ''))
-    draw_text(fig, ax, 0.635, 0.453, labels.get('101110', ''))
-    draw_text(fig, ax, 0.370, 0.548, labels.get('101111', ''))
-    draw_text(fig, ax, 0.594, 0.689, labels.get('110000', ''))
-    draw_text(fig, ax, 0.579, 0.670, labels.get('110001', ''))
-    draw_text(fig, ax, 0.398, 0.670, labels.get('110010', ''))
-    draw_text(fig, ax, 0.395, 0.653, labels.get('110011', ''))
-    draw_text(fig, ax, 0.633, 0.682, labels.get('110100', ''))
-    draw_text(fig, ax, 0.616, 0.656, labels.get('110101', ''))
-    draw_text(fig, ax, 0.587, 0.427, labels.get('110110', ''))
-    draw_text(fig, ax, 0.526, 0.415, labels.get('110111', ''))
-    draw_text(fig, ax, 0.495, 0.677, labels.get('111000', ''))
-    draw_text(fig, ax, 0.505, 0.648, labels.get('111001', ''))
-    draw_text(fig, ax, 0.428, 0.663, labels.get('111010', ''))
-    draw_text(fig, ax, 0.430, 0.631, labels.get('111011', ''))
-    draw_text(fig, ax, 0.639, 0.524, labels.get('111100', ''))
-    draw_text(fig, ax, 0.591, 0.604, labels.get('111101', ''))
-    draw_text(fig, ax, 0.622, 0.477, labels.get('111110', ''))
-    draw_text(fig, ax, 0.501, 0.523, labels.get('111111', ''))
-
-    # legend
-    draw_text(fig, ax, 0.674, 0.824, names[0], colors[0])
-    draw_text(fig, ax, 0.747, 0.751, names[1], colors[1])
-    draw_text(fig, ax, 0.739, 0.396, names[2], colors[2])
-    draw_text(fig, ax, 0.700, 0.247, names[3], colors[3])
-    draw_text(fig, ax, 0.291, 0.255, names[4], colors[4])
-    draw_text(fig, ax, 0.203, 0.484, names[5], colors[5])
-    leg = ax.legend(names, loc='best', fancybox=True)
-    leg.get_frame().set_alpha(0.5)
-
-    return fig, ax
-
-
 def output_plot(fig, out_prefix, pdf=True):
     png_file = '{p}.png'.format(p=out_prefix)
     fig.savefig(png_file, dpi=300)
@@ -531,7 +419,17 @@ def plot_subset_plot(diff_matrix, out_prefix):
     return r
 
 
-def plot_one_combination(diff_dir, combination, out_dir):
+def compare_brief_name(comp_list):
+    brief_cmp_list = []
+    for comp_i in comp_list:
+        grp_a, grp_b = comp_i.split('_vs_')
+        grp_a_abbr = grp_a[:3]
+        grp_b_abbr = grp_a[:3]
+        brief_cmp_list.append(f'{grp_a_abbr}_vs_{grp_b_abbr}')
+    return brief_cmp_list
+
+
+def plot_one_combination(diff_dir, combination, out_dir, gene_type, venn_name=None):
     combination_list = combination.split(',')
     comb_num = len(combination_list)
     # check combination number, only support 2-5 combination to draw venn
@@ -542,15 +440,22 @@ def plot_one_combination(diff_dir, combination, out_dir):
     gene_list = []
     gene_df_list = []
     for each_com in combination_list:
-        each_com_diff_genes = os.path.join(
-            diff_dir, each_com, '{c}.ALL.{s}'.format(
-                c=each_com, s=DIFF_LIST_SFX))
+        if gene_type == 'all':
+            each_com_diff_genes = os.path.join(
+                diff_dir, each_com, f'{each_com}.ALL.{DIFF_LIST_SFX}')
+        else:
+            each_com_diff_genes = os.path.join(
+                diff_dir, each_com,
+                f'{gene_type}.{each_com}.ALL.{DIFF_LIST_SFX}')
         diff_df = pd.read_table(each_com_diff_genes, header=None, index_col=0)
         gene_list.append(diff_df.index)
         diff_df.loc[:, each_com] = 1
         gene_df_list.append(diff_df)
 
-    venn_prefix = '__'.join(combination_list)
+    if venn_name is None:
+        venn_prefix = '__'.join(compare_brief_name(combination_list))
+    else:
+        venn_prefix = venn_name
     report_plt_dir = os.path.join(
         out_dir, 'report_plot',
     )
@@ -559,8 +464,12 @@ def plot_one_combination(diff_dir, combination, out_dir):
         # draw venn, output 2 figs, one with logical numbers and the other without
         labels, col_set = get_labels(gene_list, fill=['number', 'logic'])
         labels_simple, col_set = get_labels(gene_list, fill=['number'])
-        result_plt_dir = os.path.join(
-            out_dir, 'venn_plot', venn_prefix)
+        if gene_type == 'all':
+            result_plt_dir = os.path.join(
+                out_dir, 'venn_plot', venn_prefix)
+        else:
+            result_plt_dir = os.path.join(
+                out_dir, f'{gene_type}_venn_plot', venn_prefix)
         save_mkdir(result_plt_dir)
         venn_plot = VENN_FUNCS[f'venn{comb_num}']
         fig_detail, ax = venn_plot(labels, names=combination_list)
@@ -570,7 +479,7 @@ def plot_one_combination(diff_dir, combination, out_dir):
         venn_simple = os.path.join(result_plt_dir, 'venn_plot')
         output_plot(fig_simple, venn_simple)
         fig_simple2, ax = venn_plot(labels_simple, names=combination_list)
-        venn_report = os.path.join(report_plt_dir, f'{venn_prefix}.venn')
+        venn_report = os.path.join(report_plt_dir, f'{gene_type}.{venn_prefix}.venn')
         output_plot(fig_simple2, venn_report, pdf=False)
 
         # output gene ids in each part of venn
@@ -579,15 +488,20 @@ def plot_one_combination(diff_dir, combination, out_dir):
                 result_plt_dir, '{n}.txt'.format(n=each_part))
             write_obj_to_file(col_set[each_part], out_file)
     else:
-        result_plt_dir = os.path.join(
-            out_dir, 'upset_plot', venn_prefix)
+        if gene_type == 'all':
+            result_plt_dir = os.path.join(
+                out_dir, 'upset_plot', venn_prefix)
+        else:
+            result_plt_dir = os.path.join(
+                out_dir, f'{gene_type}_upset_plot', venn_prefix)
         save_mkdir(result_plt_dir)
-        diff_gene_df = pd.concat(gene_df_list, axis=1)
+        diff_gene_df = pd.concat(gene_df_list, axis=1, sort=False)
         diff_gene_df.fillna(0, inplace=True)
         diff_gene_file = os.path.join(result_plt_dir, f'Diff.gene.matrix.csv')
         diff_gene_df.to_csv(diff_gene_file)
         venn_simple = os.path.join(result_plt_dir, 'upset_plot')
-        venn_report = os.path.join(report_plt_dir, f'{venn_prefix}.upset_plot')
+        venn_report = os.path.join(report_plt_dir,
+                                   f'{gene_type}.{venn_prefix}.upset_plot')
         plot_subset_plot(diff_gene_file, venn_simple)
         plot_subset_plot(diff_gene_file, venn_report)
 
@@ -604,13 +518,21 @@ def plot_one_combination(diff_dir, combination, out_dir):
 @click.option('-a', '--all_combine', is_flag=True,
               help='run all possible combination between 2-5 sets of sets \
               provided.')
-def main(diff_dir, combination_file, combination, out_dir, all_combine):
+@click.option('-t', '--gene_type',
+              type=click.Choice(['all', 'protein_coding', 'lncRNA']),
+              default='all',
+              help='type of gene to plot.')
+def main(diff_dir, combination_file, combination,
+         out_dir, all_combine, gene_type):
     if combination_file:
         combinations = [each.strip() for each in open(combination_file)]
-        [plot_one_combination(diff_dir, cmb, out_dir) for cmb in combinations]
+        for n, cmb_i in enumerate(combinations):
+            venn_name = f'venn{n+1}'
+            plot_one_combination(diff_dir, cmb_i, out_dir,
+                                 gene_type, venn_name=venn_name)
     elif combination:
         if not all_combine:
-            plot_one_combination(diff_dir, combination, out_dir)
+            plot_one_combination(diff_dir, combination, out_dir, gene_type)
         else:
             combination_list = combination.split(',')
             max_num = min(6, len(combination_list) + 1)
@@ -618,7 +540,8 @@ def main(diff_dir, combination_file, combination, out_dir, all_combine):
                 all_com = itertools.combinations(combination_list, each_num)
                 for each_com in all_com:
                     each_com_name = ','.join(each_com)
-                    plot_one_combination(diff_dir, each_com_name, out_dir)
+                    plot_one_combination(
+                        diff_dir, each_com_name, out_dir, gene_type)
     else:
         click.echo('--combination_file or --combination is needed')
         sys.exit(1)

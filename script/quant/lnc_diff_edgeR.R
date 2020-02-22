@@ -156,23 +156,45 @@ colnames(sorted_merged_df)[1] <- 'Gene_ID'
 out_file_name_prefix <- paste(outdir, '/', compare, sep = '')
 up_regulate_name_prefix <- paste(outdir, '/', compare, '.','UP',  sep = '')
 down_regulate_name_prefix <- paste(outdir, '/', compare, '.','DOWN', sep = '')
+pcg_out_file_name_prefix <- paste(outdir, '/', 'protein_coding.', compare, sep = '')
+pcg_up_regulate_name_prefix <- paste(outdir, '/', 'protein_coding.', compare, '.','UP',  sep = '')
+pcg_down_regulate_name_prefix <- paste(outdir, '/', 'protein_coding.', compare, '.','DOWN', sep = '')
+lnc_out_file_name_prefix <- paste(outdir, '/', 'lncRNA.', compare, sep = '')
+lnc_up_regulate_name_prefix <- paste(outdir, '/', 'lncRNA.', compare, '.','UP',  sep = '')
+lnc_down_regulate_name_prefix <- paste(outdir, '/', 'lncRNA.', compare, '.','DOWN', sep = '')
 
 diff_genes <- c()
 up_regulate_df <- filter(sorted_merged_df, logFC >= logfc, FDR <= qvalue)
 down_regulate_df <- filter(sorted_merged_df, logFC <= -(logfc), FDR <= qvalue)
 diff_genes <- c(diff_genes, up_regulate_df$Gene_ID, down_regulate_df$Gene_ID)
 write.table(sorted_merged_df, file=paste(out_file_name_prefix, 'edgeR.DE_results.txt', sep = '.'), sep='\t', quote=F, row.names=F)
+lnc_genes <- sorted_merged_df[str_detect(sorted_merged_df$gene_biotype, 'lncRNA'),]$Gene_ID
+pcg_genes <- sorted_merged_df[str_detect(sorted_merged_df$gene_biotype, 'protein_coding'),]$Gene_ID
+
 if (dim(up_regulate_df)[1] > 0) {
   write.table(up_regulate_df, file=paste(up_regulate_name_prefix, 'edgeR.DE_results.txt', sep = '.'), sep='\t', quote=F, row.names=F)
   write(as.character(up_regulate_df$Gene_ID), file = paste(up_regulate_name_prefix, 'edgeR.DE_results.diffgenes.txt', sep = '.'), sep = '\n')
+  up_pcg_genes <- up_regulate_df$Gene_ID[up_regulate_df$Gene_ID %in% pcg_genes]
+  up_lnc_genes <- up_regulate_df$Gene_ID[up_regulate_df$Gene_ID %in% lnc_genes]
+  write(as.character(up_pcg_genes), file = paste(pcg_up_regulate_name_prefix, 'edgeR.DE_results.diffgenes.txt', sep = '.'), sep = '\n')
+  write(as.character(up_lnc_genes), file = paste(lnc_up_regulate_name_prefix, 'edgeR.DE_results.diffgenes.txt', sep = '.'), sep = '\n')
 }
 if (dim(down_regulate_df)[1] > 0) {
   write.table(down_regulate_df, file=paste(down_regulate_name_prefix, 'edgeR.DE_results.txt', sep = '.'), sep='\t', quote=F, row.names=F)
   write(as.character(down_regulate_df$Gene_ID), file = paste(down_regulate_name_prefix, 'edgeR.DE_results.diffgenes.txt', sep = '.'), sep = '\n')
+  down_pcg_genes <- up_regulate_df$Gene_ID[down_regulate_df$Gene_ID %in% pcg_genes]
+  down_lnc_genes <- up_regulate_df$Gene_ID[down_regulate_df$Gene_ID %in% lnc_genes]
+  write(as.character(down_pcg_genes), file = paste(pcg_down_regulate_name_prefix, 'edgeR.DE_results.diffgenes.txt', sep = '.'), sep = '\n')
+  write(as.character(down_lnc_genes), file = paste(lnc_down_regulate_name_prefix, 'edgeR.DE_results.diffgenes.txt', sep = '.'), sep = '\n')
 }
+
 ## write diff gene list
 if (length(diff_genes) > 0) {
   write(as.character(diff_genes), file = paste(out_file_name_prefix, 'ALL.edgeR.DE_results.diffgenes.txt', sep = '.'), sep = '\n')
+  pcg_diff_genes <- diff_genes[diff_genes %in% pcg_genes]
+  lnc_diff_genes <- diff_genes[diff_genes %in% lnc_genes]
+  write(as.character(pcg_diff_genes), file = paste(pcg_out_file_name_prefix, 'ALL.edgeR.DE_results.diffgenes.txt', sep = '.'), sep = '\n')
+  write(as.character(lnc_diff_genes), file = paste(lnc_out_file_name_prefix, 'ALL.edgeR.DE_results.diffgenes.txt', sep = '.'), sep = '\n')
 }
 ## volcano plot
 sorted_merged_df[str_detect(sorted_merged_df$gene_biotype, 'lncRNA'),]$gene_biotype <- 'lncRNA'

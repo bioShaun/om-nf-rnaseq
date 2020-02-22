@@ -18,6 +18,7 @@ BIBTEX = SCRIPT_DIR / 'ref.bib'
 REPORT_CFG = yaml.load(open(CFG_FILE), Loader=yaml.FullLoader)
 BIB_DATA = parse_file(BIBTEX)
 
+
 STAR_TABLE_COLS = [
     'Uniquely mapped reads %',
     'Mismatch rate per base, %',
@@ -86,13 +87,15 @@ def table2dict(table_file, sep='\t', format_func_map=TABLE_CLEANER):
     return table_dict
 
 
-def plotitem2report(result_dir, report_dir, plot_flag):
+def plotitem2report(result_dir, report_dir, plot_flag, full, plot_num):
     plot_dict = dict()
     plot_item = result_dir / f'{plot_flag}'
     if plot_item.is_dir():
         outpath = report_dir / f'{TEMP_IMG_DIR}/{plot_flag}'
         outpath.mkdir(exist_ok=True, parents=True)
         plot_list = sorted(glob.glob(f'{plot_item}/*png'))
+        if not full:
+            plot_list = plot_list[:plot_num]
         if plot_list:
             for plot in plot_list:
                 file_util.copy_file(plot, outpath)
@@ -139,7 +142,7 @@ def cite_detail(cite_name):
 
 class ReportGenerator:
 
-    def __init__(self, result_dir, report_dir):
+    def __init__(self, result_dir, report_dir, full, test_plot_num):
         self.cite = 1
         self.p_order = REPORT_CFG['process_order']
         self.rs_dir = Path(result_dir)
@@ -149,6 +152,8 @@ class ReportGenerator:
         self.software_file = self.rs_dir / REPORT_CFG['software_file']
         self.software_name = REPORT_CFG['software_name']
         self.software_params = REPORT_CFG['software_params']
+        self.full = full
+        self.test_plot_num = test_plot_num
 
     def add_cite_software(self):
         software_df = pd.read_csv(self.software_file, index_col=0, sep='\t')
@@ -185,7 +190,8 @@ class ReportGenerator:
                 for plot in process_plot:
                     print(plot)
                     self._report_dict.update(
-                        plotitem2report(self.rs_dir, self.ro_dir, plot)
+                        plotitem2report(self.rs_dir, self.ro_dir,
+                                        plot, self.full, self.test_plot_num)
                     )
             self._report_dict[f'{process}_cite'] = self.cite
             self.add_cite_software()
@@ -193,7 +199,8 @@ class ReportGenerator:
 
 
 def rnaseq_report(result_dir, proj_name='test',
-                  report_dir=None, report_title="LncRNA 分析报告"):
+                  report_dir=None, report_title="LncRNA 分析报告",
+                  full=True, test_plot_num=3):
     result_dir = Path(result_dir)
     if report_dir is None:
         report_dir = result_dir / 'report'
@@ -208,7 +215,8 @@ def rnaseq_report(result_dir, proj_name='test',
     display_dictionary['project_name'] = proj_name
     display_dictionary['report_title'] = report_title
 
-    report_content = ReportGenerator(result_dir, report_dir)
+    report_content = ReportGenerator(
+        result_dir, report_dir, full, test_plot_num)
     display_dictionary.update(report_content.report)
 
     display_html = template.render(display_dictionary)

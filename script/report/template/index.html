@@ -126,14 +126,24 @@
                         <li>
                             <a href="#diff">差异基因火山图</a>
                         </li>
-                        {% if protein_coding_diff_genes_heatmap %}
-                        <li>
-                            <a href="#heatmap">差异性基因聚类热图</a>
-                        </li>
-                        {% endif %}
                         {% if pcg_diff_dis %}
                         <li>
                             <a href="#diff_loc">差异性基因分布</a>
+                        </li>
+                        {% endif %}
+                        {% if pcg_venn_plot %}
+                        <li>
+                            <a href="#venn">差异性基因韦恩图</a>
+                        </li>
+                        {% endif %}
+                        {% if pcg_upset_plot %}
+                        <li>
+                            <a href="#upset_plot">差异性基因UpSet图</a>
+                        </li>
+                        {% endif %}
+                        {% if protein_coding_diff_genes_heatmap %}
+                        <li>
+                            <a href="#heatmap">差异性基因聚类热图</a>
                         </li>
                         {% endif %}
                     </ul>
