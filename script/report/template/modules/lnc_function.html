@@ -91,9 +91,8 @@
 
         <hr>
 
-        {% if lnc_cluster_go %}
-        <div class="w clearfix">
-            {% if lnc_cluster_go %}
+        {% if lnc_cluster_go and lnc_cluster_kegg %}
+        <div class="w clearfix">        
             <div class="plot-small-slider fl">
                 <div class="fotorama" 
                     data-width="400" 
@@ -109,9 +108,7 @@
                 {% endfor %}
                 </div>
             </div>
-            {% endif %}
 
-            {% if lnc_cluster_kegg %}
             <div class="plot-small-slider fl">
                 <div class="fotorama" 
                     data-width="400" 
@@ -127,7 +124,49 @@
                 {% endfor %}
                 </div>
             </div>
+        </div>
+        {% endif %}
+
+
+        {% if lnc_cluster_go or lnc_cluster_kegg %}
+        <div class="plot clearfix">       
+            
+            {% if lnc_cluster_go %}
+            <div class="plot-small-slider">
+                <div class="fotorama" 
+                    data-width="600" 
+                    data-ratio="4/3" 
+                    data-max-width="100%"
+                    data-allowfullscreen="true"
+                    data-nav="thumbs"
+                    data-transition="crossfade"
+                    data-loop="true"
+                >
+                {% for plot in lnc_cluster_go %}
+                    <img src="{{plot}}">
+                {% endfor %}
+                </div>
+            </div>
             {% endif %}
+
+            {% if lnc_cluster_kegg %}
+            <div class="plot-small-slider">
+                <div class="fotorama" 
+                    data-width="600" 
+                    data-ratio="4/3" 
+                    data-max-width="100%"
+                    data-allowfullscreen="true"
+                    data-nav="thumbs"
+                    data-transition="crossfade"
+                    data-loop="true"
+                >
+                {% for plot in lnc_cluster_kegg %}
+                    <img src="{{plot}}">
+                {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
         </div>
         {% endif %}
 

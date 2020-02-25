@@ -37,7 +37,7 @@ om_enrich_bar_plot2 <- function(enrich_df,
     max_term_len <- ifelse(max_term_len > 60, 60, max_term_len)
 
     plot_witdh <- 6 + max_term_len *0.01
-    plot_height <- dim(enrich_df)[1] / 3
+    plot_height <- 1 + dim(enrich_df)[1] / 3
 
     p <- ggplot(enrich_df, aes(wrap_term, log10qvalue, fill = ontology, alpha = color_val)) +
       geom_bar(stat = 'identity', width = 0.45, color='grey50') +

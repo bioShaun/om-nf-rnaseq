@@ -447,10 +447,13 @@ def plot_one_combination(diff_dir, combination, out_dir, gene_type, venn_name=No
             each_com_diff_genes = os.path.join(
                 diff_dir, each_com,
                 f'{gene_type}.{each_com}.ALL.{DIFF_LIST_SFX}')
-        diff_df = pd.read_table(each_com_diff_genes, header=None, index_col=0)
-        gene_list.append(diff_df.index)
-        diff_df.loc[:, each_com] = 1
-        gene_df_list.append(diff_df)
+        if os.path.isfile(each_com_diff_genes):
+            diff_df = pd.read_csv(
+                each_com_diff_genes, header=None, index_col=0,
+                sep='\t')
+            gene_list.append(diff_df.index)
+            diff_df.loc[:, each_com] = 1
+            gene_df_list.append(diff_df)
 
     if venn_name is None:
         venn_prefix = '__'.join(compare_brief_name(combination_list))
@@ -459,6 +462,10 @@ def plot_one_combination(diff_dir, combination, out_dir, gene_type, venn_name=No
     report_plt_dir = os.path.join(
         out_dir, 'report_plot',
     )
+    comb_num = len(gene_df_list)
+    if comb_num < 2:
+        click.echo('at least 2 sets were required.')
+        return
     save_mkdir(report_plt_dir)
     if comb_num <= 5:
         # draw venn, output 2 figs, one with logical numbers and the other without

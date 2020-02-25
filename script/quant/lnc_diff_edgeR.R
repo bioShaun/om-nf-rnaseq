@@ -37,8 +37,14 @@ om_lnc_volcano_plot <- function(dpa_results, compare_name,
   names(plot_cols) <- plot_order
   dpa_results$logFDR <- -log10(dpa_results$FDR)
   dpa_results$status <- "Non-significant"
-  dpa_results[dpa_results$FDR <= qvalue & dpa_results$logFC >= logfc, ]$status <- 'Up-regulated'
-  dpa_results[dpa_results$FDR <= qvalue & dpa_results$logFC <= -logfc, ]$status <- 'Down-regulated'
+  up_rows <- dpa_results$FDR <= qvalue & dpa_results$logFC >= logfc
+  down_rows <- dpa_results$FDR <= qvalue & dpa_results$logFC <= -logfc
+  if (sum(up_rows)) {
+    dpa_results[up_rows,]$status <- 'Up-regulated'
+  }
+  if (sum(down_rows)) {
+    dpa_results[down_rows, ]$status <- 'Down-regulated'
+  }
   dpa_results$merge_status <- paste(
     dpa_results$status, 
     dpa_results$gene_biotype, 
@@ -176,16 +182,24 @@ if (dim(up_regulate_df)[1] > 0) {
   write(as.character(up_regulate_df$Gene_ID), file = paste(up_regulate_name_prefix, 'edgeR.DE_results.diffgenes.txt', sep = '.'), sep = '\n')
   up_pcg_genes <- up_regulate_df$Gene_ID[up_regulate_df$Gene_ID %in% pcg_genes]
   up_lnc_genes <- up_regulate_df$Gene_ID[up_regulate_df$Gene_ID %in% lnc_genes]
-  write(as.character(up_pcg_genes), file = paste(pcg_up_regulate_name_prefix, 'edgeR.DE_results.diffgenes.txt', sep = '.'), sep = '\n')
-  write(as.character(up_lnc_genes), file = paste(lnc_up_regulate_name_prefix, 'edgeR.DE_results.diffgenes.txt', sep = '.'), sep = '\n')
+  if (length(up_pcg_genes)) {
+    write(as.character(up_pcg_genes), file = paste(pcg_up_regulate_name_prefix, 'edgeR.DE_results.diffgenes.txt', sep = '.'), sep = '\n')
+  }
+  if (length(up_lnc_genes)) {
+    write(as.character(up_lnc_genes), file = paste(lnc_up_regulate_name_prefix, 'edgeR.DE_results.diffgenes.txt', sep = '.'), sep = '\n')
+  }
 }
 if (dim(down_regulate_df)[1] > 0) {
   write.table(down_regulate_df, file=paste(down_regulate_name_prefix, 'edgeR.DE_results.txt', sep = '.'), sep='\t', quote=F, row.names=F)
   write(as.character(down_regulate_df$Gene_ID), file = paste(down_regulate_name_prefix, 'edgeR.DE_results.diffgenes.txt', sep = '.'), sep = '\n')
-  down_pcg_genes <- up_regulate_df$Gene_ID[down_regulate_df$Gene_ID %in% pcg_genes]
-  down_lnc_genes <- up_regulate_df$Gene_ID[down_regulate_df$Gene_ID %in% lnc_genes]
-  write(as.character(down_pcg_genes), file = paste(pcg_down_regulate_name_prefix, 'edgeR.DE_results.diffgenes.txt', sep = '.'), sep = '\n')
-  write(as.character(down_lnc_genes), file = paste(lnc_down_regulate_name_prefix, 'edgeR.DE_results.diffgenes.txt', sep = '.'), sep = '\n')
+  down_pcg_genes <- down_regulate_df$Gene_ID[down_regulate_df$Gene_ID %in% pcg_genes]
+  down_lnc_genes <- down_regulate_df$Gene_ID[down_regulate_df$Gene_ID %in% lnc_genes]
+  if (length(down_pcg_genes)) {
+    write(as.character(down_pcg_genes), file = paste(pcg_down_regulate_name_prefix, 'edgeR.DE_results.diffgenes.txt', sep = '.'), sep = '\n')
+  }
+  if (length(down_lnc_genes)) {
+    write(as.character(down_lnc_genes), file = paste(lnc_down_regulate_name_prefix, 'edgeR.DE_results.diffgenes.txt', sep = '.'), sep = '\n')
+  }
 }
 
 ## write diff gene list
@@ -193,8 +207,12 @@ if (length(diff_genes) > 0) {
   write(as.character(diff_genes), file = paste(out_file_name_prefix, 'ALL.edgeR.DE_results.diffgenes.txt', sep = '.'), sep = '\n')
   pcg_diff_genes <- diff_genes[diff_genes %in% pcg_genes]
   lnc_diff_genes <- diff_genes[diff_genes %in% lnc_genes]
-  write(as.character(pcg_diff_genes), file = paste(pcg_out_file_name_prefix, 'ALL.edgeR.DE_results.diffgenes.txt', sep = '.'), sep = '\n')
-  write(as.character(lnc_diff_genes), file = paste(lnc_out_file_name_prefix, 'ALL.edgeR.DE_results.diffgenes.txt', sep = '.'), sep = '\n')
+  if (length(pcg_diff_genes)) {
+    write(as.character(pcg_diff_genes), file = paste(pcg_out_file_name_prefix, 'ALL.edgeR.DE_results.diffgenes.txt', sep = '.'), sep = '\n')
+  }
+  if (length(lnc_diff_genes)) {
+    write(as.character(lnc_diff_genes), file = paste(lnc_out_file_name_prefix, 'ALL.edgeR.DE_results.diffgenes.txt', sep = '.'), sep = '\n')
+  }
 }
 ## volcano plot
 sorted_merged_df[str_detect(sorted_merged_df$gene_biotype, 'lncRNA'),]$gene_biotype <- 'lncRNA'

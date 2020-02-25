@@ -23,17 +23,22 @@ def diff_dis(diff_file, chr_size, chr_window, pval=0.05, logfc=1, lnc=False):
     mask1 = diff_df.FDR <= pval
     mask2 = diff_df.logFC.abs() >= logfc
     f_diff_df = diff_df[mask1 & mask2]
+    plot_by_type = ''
     if lnc:
         mask = f_diff_df.gene_biotype.str.contains('lncRNA')
         f_diff_df.loc[f_diff_df[mask].index, 'gene_biotype'] = 'lncRNA'
         mask1 = f_diff_df.gene_biotype == 'protein_coding'
         mask2 = f_diff_df.gene_biotype == 'lncRNA'
+        plot_by_type = '--lnc'
     else:
         f_diff_df.loc[:, 'gene_biotype'] = 'protein_coding'
     pcg_lnc_diff_df = f_diff_df[mask1 | mask2]
+    if pcg_lnc_diff_df.empty:
+        return 'Zero Diff gene Found'
     pcg_lnc_diff_df.loc[:, 'regulation'] = 'UP'
     mask = pcg_lnc_diff_df.logFC < 0
-    pcg_lnc_diff_df.loc[pcg_lnc_diff_df[mask].index, 'regulation'] = 'DOWN'
+    if sum(mask):
+        pcg_lnc_diff_df.loc[pcg_lnc_diff_df[mask].index, 'regulation'] = 'DOWN'
     gene_bed_file = outdir / 'diff.gene.bed'
     pcg_lnc_diff_df.to_csv(
         gene_bed_file, sep='\t',
@@ -54,7 +59,7 @@ def diff_dis(diff_file, chr_size, chr_window, pval=0.05, logfc=1, lnc=False):
                 f'--diff_file {intersect_count_file} '
                 f'--chrom_size {chr_size} '
                 f'--out_dir {outdir} '
-                f'--compare {compare_name}')
+                f'--compare {compare_name} {plot_by_type}')
     # clean_cmd = f'rm {intersect_count_file} {gene_bed_file}'
     delegator.run(plot_cmd)
 

@@ -449,6 +449,8 @@ process assembly {
 
     publishDir "${params.outdir}/${params.proj_name}/result/assembly/detail/${name}", mode: 'copy'
 
+    cpus = 4
+
     input:
     file bam from bam_assembly
     file gtf from gtf
@@ -468,6 +470,7 @@ process assembly {
         -G ${gtf} ${st_direction} \\
         --conservative \\
         -o ${name}.gtf \\
+        -p ${task.cpus} \\
         ${bam} 
         
     gffcompare -r ${gtf} -o cmp2ref ${name}.gtf
@@ -788,6 +791,8 @@ if (params.chr_size && params.chr_window) {
     process diff_gene_loc {
 
         tag "${compare}"
+        
+        errorStrategy 'ignore'
 
         publishDir "${params.outdir}/${params.proj_name}/result/quantification/differential_analysis/${compare}", mode: 'copy'
         

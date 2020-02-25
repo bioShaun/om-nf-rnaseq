@@ -292,8 +292,6 @@ process star_mapping {
 
     cpus = 40
 
-    queue 'bm'
-
     input:
     file reads from clean_reads
     file index from star_index
@@ -805,7 +803,8 @@ process diff_analysis {
     """
     mv ${compare} ${compare}_compare
 
-    /public/software/R/R-3.5.1/executable/bin/Rscript ${script_dir}/quant/lnc_diff_edgeR.R \\
+    /public/software/R/R-3.5.1/executable/bin/Rscript \\
+        ${script_dir}/quant/lnc_diff_edgeR.R \\
         --deg_rdata ${deg_obj} \\
         --compare ${compare} \\
         --sample_inf ${sample_group} \\
@@ -889,6 +888,8 @@ if (params.chr_size && params.chr_window) {
     process diff_gene_loc {
 
         tag "${compare}"
+    
+        errorStrategy 'ignore'
 
         publishDir "${params.outdir}/${params.proj_name}/result/quantification/differential_analysis/${compare}", mode: 'copy'
         
@@ -913,8 +914,7 @@ if (params.chr_size && params.chr_window) {
                 --chr-window ${chr_window} \\
                 --chr-size ${chr_size} \\
                 --pval ${params.exp_diff_pval} \\
-                --logfc ${params.exp_lgfc} \\
-                --lnc
+                --logfc ${params.exp_lgfc} --lnc
 
         python ${script_dir}/quant/diff_distribute.py \\
                 --diff-file ${diff_table} \\
@@ -1025,7 +1025,7 @@ process go_analysis {
     then
         /public/software/R/R-3.5.1/executable/bin/Rscript \\
             ${script_dir}/enrichment/enrich_bar.R \\
-            --enrich_file ${compare}/${compare}_${reg}_go_enrichment.txt
+                --enrich_file ${compare}/${compare}_${reg}_go_enrichment.txt
     fi
     """
 }
@@ -1203,7 +1203,8 @@ process lnc_cluster_go {
 
     if [ -s ${cluster_name}_go_enrichment.txt ]
     then
-        /public/software/R/R-3.5.1/executable/bin/Rscript ${script_dir}/enrichment/enrich_bar.R \\
+        /public/software/R/R-3.5.1/executable/bin/Rscript \\
+            ${script_dir}/enrichment/enrich_bar.R \\
             --enrich_file ${cluster_name}_go_enrichment.txt
     fi
     """
