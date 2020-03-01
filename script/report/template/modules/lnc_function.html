@@ -3,8 +3,9 @@
     <h3>lncRNA 功能分析</h3>
     <div id='lnc_function_results' class="block">
         <div class="description">
-            <p>          
-                因为 lncRNA 不编码蛋白，所以我们通常根据 lncRNA 临近的蛋白编码基因或者与 lncRNA 具有相似表达模式的蛋白编码基因推测 lncRNA 的功能。
+            <p>
+                因为 lncRNA 不编码蛋白，所以我们通常根据 lncRNA 临近的蛋白编码基因或者与 lncRNA
+                具有相似表达模式的蛋白编码基因推测 lncRNA 的功能。
             </p>
         </div>
 
@@ -14,7 +15,12 @@
         <h4>lncRNA 邻近蛋白编码基因</h4>
         <div class="description">
             <p>
-                目前的研究发现很多 lncRNA 参与邻近蛋白编码基因的表达调控。我们使用 <a href="https://github.com/tderrien/FEELnc" target="_blank"> <b>FEELnc</b> </a><a href="#citation-{{lnc_function_cite}}"><sup>{{lnc_function_cite}}</sup></a> (Wucher, Valentin, et al. 2017) 软件搜索 lncRNA 上下游 100kb 所以蛋白编码基因并计算它们的表达相关性。下表展示了部分 lncRNA 与其邻近的蛋白编码基因距离以及皮尔逊相关系数。
+                目前的研究发现很多 lncRNA 参与邻近蛋白编码基因的表达调控。我们使用 <a
+                    href="https://github.com/tderrien/FEELnc" target="_blank">
+                    <b>FEELnc</b> </a><a
+                    href="#citation-{{lnc_function_cite}}"><sup>{{lnc_function_cite}}</sup></a>
+                (Wucher, Valentin, et al. 2017) 软件搜索 lncRNA 上下游 100kb
+                所以蛋白编码基因并计算它们的表达相关性。下表展示了部分 lncRNA 与其邻近的蛋白编码基因距离以及皮尔逊相关系数。
             </p>
         </div>
 
@@ -36,22 +42,24 @@
                     </tr>
                     {% endfor %}
                 </tbody>
-            </table>                   
+            </table>
         </div>
 
         {% if lncRNA_PCG_neighbour_distribution %}
         <h4>lncRNA 临近蛋白编码基因分布</h4>
         <div class="description">
             <p>
-                我们通过滑动窗口，统计了每 1Mb 区域内 lncRNA 和临近蛋白编码基因的组合数目，并统计了它们皮尔逊相关性系数的均值。如下图所示。
+                我们通过滑动窗口，统计了每 1Mb 区域内 lncRNA
+                和临近蛋白编码基因的组合数目，并统计了它们皮尔逊相关性系数的均值。如下图所示。
             </p>
-        </div>    
+        </div>
 
         <div class="plot">
-            <a class="lnc-nb-dis-link" 
-                href="{{lncRNA_PCG_neighbour_distribution}}" data-lightbox="lnc-nb-dis">
-                <img class="lnc-nb-dis" style="width: 600px;" 
-                src="{{lncRNA_PCG_neighbour_distribution}}" />
+            <a class="lnc-nb-dis-link"
+                href="{{lncRNA_PCG_neighbour_distribution}}"
+                data-lightbox="lnc-nb-dis">
+                <img class="lnc-nb-dis" style="width: 600px;"
+                    src="{{lncRNA_PCG_neighbour_distribution}}" />
             </a>
         </div>
 
@@ -64,7 +72,9 @@
         <h4>lncRNA 表达聚类分析</h4>
         <div class="description">
             <p>
-                通过对差异表达 lncRNA 和蛋白编码基因进行聚类分析，并对每个表达模式下的蛋白编码基因进行 GO 和 KEGG 富集分析，推测该表达模式下的 lncRNA 的功能。以下上图为 lncRNA 和蛋白编码基因集在不同组织，试验条件下的表达模式，下图为该基因集的蛋白编码基因富集到的 GO Term 和 KEGG 通路。
+                通过对差异表达 lncRNA 和蛋白编码基因进行聚类分析，并对每个表达模式下的蛋白编码基因进行 GO 和 KEGG
+                富集分析，推测该表达模式下的 lncRNA 的功能。以下上图为 lncRNA
+                和蛋白编码基因集在不同组织，试验条件下的表达模式，下图为该基因集的蛋白编码基因富集到的 GO Term 和 KEGG 通路。
             </p>
         </div>
 
@@ -72,18 +82,13 @@
 
         <div class="plot clearfix">
             <div class="plot-small-slider fl">
-                <div class="fotorama" 
-                    data-width="600" 
-                    data-ratio="4/3" 
-                    data-max-width="100%"
-                    data-allowfullscreen="true"
-                    data-nav="thumbs"
-                    data-transition="crossfade"
-                    data-loop="true"
-                >
-                {% for plot in cluster_plot %}
+                <div class="fotorama" data-width="600" data-ratio="4/3"
+                    data-max-width="100%" data-allowfullscreen="true"
+                    data-nav="thumbs" data-transition="crossfade"
+                    data-loop="true">
+                    {% for plot in cluster_plot %}
                     <img src="{{plot}}">
-                {% endfor %}
+                    {% endfor %}
                 </div>
             </div>
         </div>
@@ -91,83 +96,65 @@
 
         <hr>
 
+
+        {% if lnc_cluster_go or lnc_cluster_kegg %}
         {% if lnc_cluster_go and lnc_cluster_kegg %}
-        <div class="w clearfix">        
+        <div class="w clearfix">
             <div class="plot-small-slider fl">
-                <div class="fotorama" 
-                    data-width="400" 
-                    data-ratio="4/3" 
-                    data-max-width="100%"
-                    data-allowfullscreen="true"
-                    data-nav="thumbs"
-                    data-transition="crossfade"
-                    data-loop="true"
-                >
-                {% for plot in lnc_cluster_go %}
+                <div class="fotorama" data-width="400" data-ratio="4/3"
+                    data-max-width="100%" data-allowfullscreen="true"
+                    data-nav="thumbs" data-transition="crossfade"
+                    data-loop="true">
+                    {% for plot in lnc_cluster_go %}
                     <img src="{{plot}}">
-                {% endfor %}
+                    {% endfor %}
                 </div>
             </div>
 
             <div class="plot-small-slider fl">
-                <div class="fotorama" 
-                    data-width="400" 
-                    data-ratio="4/3" 
-                    data-max-width="100%"
-                    data-allowfullscreen="true"
-                    data-nav="thumbs"
-                    data-transition="crossfade"
-                    data-loop="true"
-                >
-                {% for plot in lnc_cluster_kegg %}
+                <div class="fotorama" data-width="400" data-ratio="4/3"
+                    data-max-width="100%" data-allowfullscreen="true"
+                    data-nav="thumbs" data-transition="crossfade"
+                    data-loop="true">
+                    {% for plot in lnc_cluster_kegg %}
                     <img src="{{plot}}">
-                {% endfor %}
+                    {% endfor %}
                 </div>
             </div>
         </div>
-        {% endif %}
 
+        {% else %}
 
-        {% if lnc_cluster_go or lnc_cluster_kegg %}
-        <div class="plot clearfix">       
-            
+        <div class="plot clearfix">
+
             {% if lnc_cluster_go %}
             <div class="plot-small-slider">
-                <div class="fotorama" 
-                    data-width="600" 
-                    data-ratio="4/3" 
-                    data-max-width="100%"
-                    data-allowfullscreen="true"
-                    data-nav="thumbs"
-                    data-transition="crossfade"
-                    data-loop="true"
-                >
-                {% for plot in lnc_cluster_go %}
+                <div class="fotorama" data-width="600" data-ratio="4/3"
+                    data-max-width="100%" data-allowfullscreen="true"
+                    data-nav="thumbs" data-transition="crossfade"
+                    data-loop="true">
+                    {% for plot in lnc_cluster_go %}
                     <img src="{{plot}}">
-                {% endfor %}
+                    {% endfor %}
                 </div>
             </div>
             {% endif %}
 
             {% if lnc_cluster_kegg %}
             <div class="plot-small-slider">
-                <div class="fotorama" 
-                    data-width="600" 
-                    data-ratio="4/3" 
-                    data-max-width="100%"
-                    data-allowfullscreen="true"
-                    data-nav="thumbs"
-                    data-transition="crossfade"
-                    data-loop="true"
-                >
-                {% for plot in lnc_cluster_kegg %}
+                <div class="fotorama" data-width="600" data-ratio="4/3"
+                    data-max-width="100%" data-allowfullscreen="true"
+                    data-nav="thumbs" data-transition="crossfade"
+                    data-loop="true">
+                    {% for plot in lnc_cluster_kegg %}
                     <img src="{{plot}}">
-                {% endfor %}
+                    {% endfor %}
                 </div>
             </div>
             {% endif %}
-            
+
         </div>
+        {% endif %}
         {% endif %}
 
     </div>
